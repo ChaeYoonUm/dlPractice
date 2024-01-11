@@ -5,9 +5,11 @@ from collections import Counter
 import matplotlib.colors as mcolors
 import cv2
 
+dataSize = 400
+
 # create dataset randomly
-tmp1Datalist = np.random.randint(1, 21, (15, 2))
-tmp2Datalist = np.random.randint(0, 3, (15, 1))
+tmp1Datalist = np.random.randint(1, dataSize+1, (dataSize, 2))
+tmp2Datalist = np.random.randint(0, 3, (dataSize, 1))
 datalist = np.concatenate([tmp1Datalist, tmp2Datalist], 1)
     
 # datalist = [[10, 20, 0],
@@ -86,34 +88,43 @@ class myKNN:
         # 최빈값
         count_items = Counter(slicedLabels)
         max_item = count_items.most_common(n=1)
-        # print(max_item[0][0])
+        """_summary_
+
+        Args:
+            X (_type_): _description_
+            test (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """        # print(max_item[0][0])
         return max_item[0][0]
 
 #Real Test
 
-knn = myKNN(3)
+knn = myKNN(5)
 knn.train(coord, labels)
 myNeighbors = knn.predict(coord, testData)
 print('=====Predicted Label of Test Data=====')
 print(myNeighbors)
 
-# _myNeighbors = myNeighbors.tolist()
-# plt.text(testData[0][0]-0.5, testData[0][1]-0.5, 'Test Data - Predicted Label: ' + str(_myNeighbors))
-# plt.show()
+_myNeighbors = myNeighbors.tolist()
+plt.text(testData[0][0]-0.5, testData[0][1]-0.5, 'Test Data - Predicted Label: ' + str(_myNeighbors))
+plt.show()
 
 
 # KNN 전체적인 boudary 그리기 
-res_label = np.zeros((21,21,1), np.uint8) # predict한 라벨 값 저장
-res = np.zeros((20,20,3), np.uint8)  # (높이)x(행)x(열)
+res_label = np.zeros((dataSize+1,dataSize+1,1), np.uint8) # predict한 라벨 값 저장
+res = np.zeros((dataSize+1,dataSize+1,3), np.uint8)  # (높이)x(행)x(열)
+dataNum = len(datalist)
 print("=====res=====")
 print(res)
-for i in range(20) :
-    for j in range(20):
+for i in range(dataNum) :
+    for j in range(dataNum):
         
         testData = [[i,j,-1]]
         label = knn.predict(coord, testData)
         res_label[j,i,0] = label
-        print(f"myNeighbors {label}")
+        #print(f"myNeighbors {label}")
         if label == 0:
             res[j,i,0] = 255
         elif label == 1:
@@ -124,6 +135,20 @@ for i in range(20) :
             res[j,i,0] = 255
             res[j,i,1] = 255
             res[j,i,2] = 255
+    print(i)  
+cv2.imwrite("knn_result.jpg", res)
+
+img = cv2.imread("knn_result.jpg", cv2.COLOR_BGR2RGB)
+for i in range(dataNum):
+    tmpX = datalist[i][0]
+    tmpY = datalist[i][1]
+    tmpLabel = datalist[i][2]
+    if tmpLabel == 0:
+        cv2.circle(img, (tmpY, tmpX), 3, (153,153,255), -1) #red (bgr)
+    elif tmpLabel == 1:
+        cv2.circle(img, (tmpY, tmpX), 3, (102,255,204), -1) #green
+    else:
+        cv2.circle(img, (tmpY, tmpX), 3, (255,255,153), -1) #blue
 
 
 # 정확도 확인
@@ -145,5 +170,8 @@ print(f"equal : {num_equal}, notEqual : {Total_num - num_equal}")
 
 
 # KNN 결과 이미지 저장 및 출력
-res = cv2.resize(res, (200, 200), interpolation=cv2.INTER_NEAREST)
-cv2.imwrite("knn_result.jpg", res)
+img = cv2.resize(img, (500, 500), interpolation=cv2.INTER_LINEAR) # interpolation=cv2.INTER_NEAREST
+cv2.imwrite("knn_res.jpg", img)
+
+#opencv - point찍기
+#point 500x500으로
