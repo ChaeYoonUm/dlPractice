@@ -96,14 +96,14 @@ class myKNN:
 
 #Real Test
 
-k = myKNN(3)
+k = myKNN(4)
 k.train(coord, y)
 myNeighbors = k.predict(coord, testData)
 print('----------Predicted Label of Test Data----------')
 print(myNeighbors)
 _myNeighbors = myNeighbors.tolist()
 
-plt.text(testData[0][0], testData[0][1], 'Test Data - Predicted Label: ' + str(_myNeighbors))
+plt.text(testData[0][0]-0.5, testData[0][1]-0.5, 'Test Data - Predicted Label: ' + str(_myNeighbors))
 plt.show()
 
 
