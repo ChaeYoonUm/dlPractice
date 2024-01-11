@@ -126,7 +126,7 @@ for i in range(20) :
             res[j,i,2] = 255
 
 
-# 빨간색 label 맞혔는지 check
+# 정확도 확인
 Total_num = len(datalist)
 num_equal = 0
 for idx, data in enumerate(datalist):   
@@ -147,39 +147,3 @@ print(f"equal : {num_equal}, notEqual : {Total_num - num_equal}")
 # KNN 결과 이미지 저장 및 출력
 res = cv2.resize(res, (200, 200), interpolation=cv2.INTER_NEAREST)
 cv2.imwrite("knn_result.jpg", res)
-
-
-# 정확도 확인
-"""
-res_label = np.zeros((20,20,1), np.uint8)
-res = np.zeros((20,20,3), np.uint8)
-for i in range(20) :
-    for j in range(20):
-       
-        testData = [[i + 1,j + 1,-1]]
-        label = k.predict(coord, testData)
-        res_label[j,i,0] = label
-        print(f"myNeighbors {myNeighbors}")
-        if label == 0:
-            res[j,i,0] = 255
-        elif label == 1:
-            res[j,i,1] = 255
-        elif label == 2:
-            res[j,i,2] = 255
-        else:
-            res[j,i,0] = 255
-            res[j,i,1] = 255
-            res[j,i,2] = 255
-
-Total_num = len(datalist)
-num_equal = 0
-for idx, data in enumerate(datalist):
-    if res_label[data[1],data[0],0] == data[2]:
-        print(f"(x,y)=({data[0]},{data[1]}) label : {data[2]} Equal")
-        num_equal = num_equal + 1
-    else:
-        print(f"(x,y)=({data[0]},{data[1]}) label : {data[2]} Not Equal")
-
-print(f"equal : {num_equal}, notEqual : {Total_num - num_equal}")
-cv2.imwrite("knn_result.jpg", res)
-"""
