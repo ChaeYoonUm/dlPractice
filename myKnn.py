@@ -149,7 +149,7 @@ res = cv2.resize(res, (200, 200), interpolation=cv2.INTER_NEAREST)
 cv2.imwrite("knn_result.jpg", res)
 
 
-# 정확도
+# 정확도 확인
 """
 res_label = np.zeros((20,20,1), np.uint8)
 res = np.zeros((20,20,3), np.uint8)
