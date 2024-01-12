@@ -5,7 +5,7 @@ from collections import Counter
 import matplotlib.colors as mcolors
 import cv2
 
-dataSize = 400
+dataSize = 500
 
 # create dataset randomly
 tmp1Datalist = np.random.randint(1, dataSize+1, (dataSize, 2))
@@ -101,7 +101,7 @@ class myKNN:
 
 #Real Test
 
-knn = myKNN(5)
+knn = myKNN(3)
 knn.train(coord, labels)
 myNeighbors = knn.predict(coord, testData)
 print('=====Predicted Label of Test Data=====')
