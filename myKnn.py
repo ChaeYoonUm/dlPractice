@@ -125,12 +125,18 @@ for i in range(dataNum) :
         label = knn.predict(coord, testData)
         res_label[j,i,0] = label
         #print(f"myNeighbors {label}")
-        if label == 0:
-            res[j,i,0] = 255
+        if label == 0: 
+            res[j,i,0] = 0
+            res[j,i,1] = 0
+            res[j,i,2] = 204
         elif label == 1:
-            res[j,i,1] = 255
+            res[j,i,0] = 0
+            res[j,i,1] = 153
+            res[j,i,2] = 102
         elif label == 2:
-            res[j,i,2] = 255
+            res[j,i,0] = 102
+            res[j,i,1] = 51
+            res[j,i,2] = 0
         else:
             res[j,i,0] = 255
             res[j,i,1] = 255
