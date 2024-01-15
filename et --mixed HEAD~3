@@ -1,0 +1,72 @@
+[33mcommit 213112897122fc206fd36151e7a8b4c547835835[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Mon Jan 15 13:05:24 2024 +0900
+
+    reTry_push
+
+[33mcommit 68893afc2347bb46bbc68e1273d3cc611c4c55ba[m
+Merge: 32b0872 48ac409
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Mon Jan 15 12:57:34 2024 +0900
+
+    Merge branch 'main' of https://github.com/ChaeYoonUm/dlPractice
+
+[33mcommit 48ac40925a7c15ae321c61ea25e4674e9c9faf4c[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: ChaeYoonUm <109208182+ChaeYoonUm@users.noreply.github.com>
+Date:   Mon Jan 15 12:52:07 2024 +0900
+
+    Delete torch.py
+
+[33mcommit 32b0872940d26daa630605c8cb2c458520d2d7c0[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Mon Jan 15 12:39:50 2024 +0900
+
+    edit_myKNN's color & add_torchPractice
+
+[33mcommit bf948be4d11b196b5b727449511a685c11a80738[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Fri Jan 12 16:48:47 2024 +0900
+
+    add_practiceTensor
+
+[33mcommit 179a44d30ececbb80826f2bdc1271c8b303bd861[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Thu Jan 11 17:05:23 2024 +0900
+
+    edit_myKNN_drawing
+
+[33mcommit d6791caffd4efd161913c0f68cbf63e0c4211b1d[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Thu Jan 11 10:10:24 2024 +0900
+
+    editmyKNN
+
+[33mcommit 5801b5ed87ee30b51ab5d2225f0f2572261cd0f2[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Thu Jan 11 10:05:25 2024 +0900
+
+    myKNN
+
+[33mcommit 0c925005a93cf7e80e55577f205c51d8c197454b[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Thu Jan 11 10:01:07 2024 +0900
+
+    add_myKNN
+
+[33mcommit 5cd79703335b4de2f88ef3f3a5a07cf24cd1ba03[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Thu Jan 11 09:55:45 2024 +0900
+
+    add_myKNN
+
+[33mcommit b0256b9696eb9509f1d2bd7bc8b326640dfdfe47[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Thu Jan 11 09:53:39 2024 +0900
+
+    add_myKNN
+
+[33mcommit 46199679031951ae0bf2fb63097728372d996033[m
+Author: ryansong0904 <ryansong0904@gmail.com>
+Date:   Wed Jan 10 10:07:08 2024 +0900
+
+    first commit
