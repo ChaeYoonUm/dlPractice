@@ -107,6 +107,7 @@ print(y)  # Prints "[[ 2  2  4
           #          [11 11 13]]"
 """
 
+"""
 # Compute outer product of vectors
 v = np.array([1,2,3])  # v has shape (3,)
 w = np.array([4,5])    # w has shape (2,)
@@ -118,3 +119,5 @@ w = np.array([4,5])    # w has shape (2,)
 #  [12 15]]
 q = np.reshape(v, (3, 1)) * w
 print(q, q.shape)
+"""
+
