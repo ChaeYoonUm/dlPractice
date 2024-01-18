@@ -58,7 +58,7 @@ for i in range(200):
     print(dscores)
     
     #backprop
-    dW = np.dot(X.T, dscores)       # local gradient*upstream gradient(dscores)
+    dW = np.dot(X.T, dscores)  # local gradient*upstream gradient(dscores)
     db = np.sum(dscores, axis=0, keepdims=True)
     dW += reg*W     #regularization gradient
 
