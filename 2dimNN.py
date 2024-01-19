@@ -114,21 +114,22 @@ reg = 1e-3
 
 num_examples = X.shape[0]   
 
-#training 시작
 for i in range(10000):
     #forward pass
-    hidden_layer = np.maximum(0, np.dot(X, W1)+b1)    #activation function: ReLu
+    hidden_layer = np.maximum(0, np.dot(X, W1)+b1)    #ReLu
+    
     #class score 계산
     scores = np.dot(hidden_layer, W2) + b2          #class score
     
-    #class 확률 
+    # 확률 계산
     exp_scores = np.exp(scores)
     probs = exp_scores/np.sum(exp_scores, axis=1, keepdims=True)
     
     #loss 계산
     to_logprobs = -np.log(probs[range(num_examples), y])
     data_loss = np.sum(to_logprobs)/num_examples
-    reg_loss = 0.5 * reg * np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)
+    reg_loss = 0.5 * reg * np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2) # 0.5: reg(lamda)*W*W 미분 했을 때 딱 떨어지게 하려고
+    #full losss
     loss = data_loss + reg_loss
     if i % 1000 == 0:
         print("iteration %d: loss %f" %(i, loss))
@@ -142,20 +143,22 @@ for i in range(10000):
     #첫번째 backpropagation
     dW2 = np.dot(hidden_layer.T, dscores)
     db2 = np.sum(dscores, axis=0, keepdims=True) #axis=0: 세로방향
+    
     #두번째 backpropagation 
     dhidden = np.dot(dscores, W2.T)
+    
     #ReLu backpropagation
     dhidden[hidden_layer <= 0] = 0
-    dW = np.dot(X.T, dhidden)
-    db = np.sum(dhidden, axis=0, keepdims=True)
+    dW1 = np.dot(X.T, dhidden)
+    db1 = np.sum(dhidden, axis=0, keepdims=True)
     
     #regularization
     dW2 += reg*W2
-    dW += reg*W1
+    dW1 += reg*W1
     
     #parameter update
-    W1 += -step_size*dW
-    b1 += -step_size*db
+    W1 += -step_size*dW1
+    b1 += -step_size*db1
     W2 += -step_size*dW2
     b2 += -step_size*db2
 
@@ -174,7 +177,10 @@ xx, yy = np.meshgrid(np.arange(x_min, x_max, meshgrid_range), np.arange(y_min, y
 # print(yy.shape)
 
 # meshgrid data에 대해 학습
-Z = np.dot(np.maximum(0, np.dot(np.c_[xx.ravel(), yy.ravel()], W1) + b1), W2) + b2
+compute_first_layer = np.dot(np.c_[xx.ravel(), yy.ravel()], W1) + b1
+compute_hidden_layer = np.maximum(0, compute_first_layer)
+Z = np.dot(compute_hidden_layer, W2) + b2
+#Z = np.dot(np.maximum(0, np.dot(np.c_[xx.ravel(), yy.ravel()], W1) + b1), W2) + b2
 #ravel(): 다차원 -> 1차원, 복사x 따라서 원본도 바뀜
 #faltten(): 다차원 -> 1차원, 복사o 따라서 원본 그대로
 Z = np.argmax(Z, axis=1)
@@ -182,8 +188,6 @@ Z = Z.reshape(xx.shape)     #meshgrid 범위로 맞춰줘야 함
 
 #draw graph
 fig = plt.figure()
-plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.8)
+plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.7)
 plt.scatter(X[:, 0], X[:, 1], c=y, s=40,  edgecolor='k', cmap=plt.cm.Spectral) #s: 마커크기
-#plt.show()
-
-
+plt.show()
