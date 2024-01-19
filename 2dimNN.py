@@ -103,20 +103,22 @@ for j in range(K):
 # K = 3       #class 개수
 # 총 점 개수: N x K = 300개
 h = 100 # hidden layer
-W = 0.01 * np.random.randn(D, h) #randn(2, 100) -> (2,100)mat 정규분포
-b = np.zeros((1,h))              #(1,100)mat
-W2 = 0.01*np.random.randn(h, K)  #(100,3)mat
+W1 = 0.01 * np.random.randn(D, h) #randn(2, 100) -> (2,100)mat 정규분포 (랜덤 초기화)
+b1 = np.zeros((1,h))              #(1,100)mat
+W2 = 0.01*np.random.randn(h, K)  #(100,3)mat -> (랜덤 초기화)
 b2 = np.zeros((1,K))             #(1,3)mat
 
 # hyper parameter
 step_size = 1e-0
 reg = 1e-3
 
-num_examples = X.shape[0]
+num_examples = X.shape[0]   
 
+#training 시작
 for i in range(10000):
     #forward pass
-    hidden_layer = np.maximum(0, np.dot(X, W)+b)    #activation function: ReLu
+    hidden_layer = np.maximum(0, np.dot(X, W1)+b1)    #activation function: ReLu
+    #class score 계산
     scores = np.dot(hidden_layer, W2) + b2          #class score
     
     #class 확률 
@@ -126,7 +128,7 @@ for i in range(10000):
     #loss 계산
     to_logprobs = -np.log(probs[range(num_examples), y])
     data_loss = np.sum(to_logprobs)/num_examples
-    reg_loss = 0.5 * reg * np.sum(W*W) + 0.5*reg*np.sum(W2*W2)
+    reg_loss = 0.5 * reg * np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)
     loss = data_loss + reg_loss
     if i % 1000 == 0:
         print("iteration %d: loss %f" %(i, loss))
@@ -149,30 +151,30 @@ for i in range(10000):
     
     #regularization
     dW2 += reg*W2
-    dW += reg*W
+    dW += reg*W1
     
     #parameter update
-    W += -step_size*dW
-    b += -step_size*db
+    W1 += -step_size*dW
+    b1 += -step_size*db
     W2 += -step_size*dW2
     b2 += -step_size*db2
 
 #Training 정확도
-hidden_layer = np.maximum(0, np.dot(X, W) + b)
+hidden_layer = np.maximum(0, np.dot(X, W1) + b1)
 scores = np.dot(hidden_layer, W2) + b2
 predicted_class = np.argmax(scores, axis=1)
 print ('training accuracy: %.2f' % (np.mean(predicted_class == y)))
 
 # meshgrid 범위 나누기
-h = .02
+meshgrid_range = .02
 x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
 y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+xx, yy = np.meshgrid(np.arange(x_min, x_max, meshgrid_range), np.arange(y_min, y_max, meshgrid_range))
 # print(xx.shape)
 # print(yy.shape)
 
 # meshgrid data에 대해 학습
-Z = np.dot(np.maximum(0, np.dot(np.c_[xx.ravel(), yy.ravel()], W) + b), W2) + b2
+Z = np.dot(np.maximum(0, np.dot(np.c_[xx.ravel(), yy.ravel()], W1) + b1), W2) + b2
 #ravel(): 다차원 -> 1차원, 복사x 따라서 원본도 바뀜
 #faltten(): 다차원 -> 1차원, 복사o 따라서 원본 그대로
 Z = np.argmax(Z, axis=1)
@@ -182,8 +184,6 @@ Z = Z.reshape(xx.shape)     #meshgrid 범위로 맞춰줘야 함
 fig = plt.figure()
 plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.8)
 plt.scatter(X[:, 0], X[:, 1], c=y, s=40,  edgecolor='k', cmap=plt.cm.Spectral) #s: 마커크기
-plt.xlim(xx.min(), xx.max())
-plt.ylim(yy.min(), yy.max())
 #plt.show()
 
 
