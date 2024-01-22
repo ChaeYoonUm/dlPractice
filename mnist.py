@@ -43,26 +43,32 @@ model.fit(x_train, y_train, epochs=5)
 model.evaluate(x_test, y_test, verbose=2)
 """
 
-#===CNN Model===#
+#===CNN Model: AlexNet===#
 model = tf.keras.models.Sequential([
     #filter: Integer, the dimensionality of the output space (i.e. the number of output filters in the convolution).
     #input_shape=(28,28,1): 1->흑백채널
     # filter 값은 kernel_initializer에 의해 초기에는 아주 작은 랜덤 값으로 채워짐
     #
-    tf.keras.layers.Conv2D(input_shape=(28,28,1), activation = 'relu', kernel_size=3, filters=16, padding='same'),
-    tf.keras.layers.BatchNormalization(),
-    # tf.keras.layers.Conv2D(input_shape=(28,28,1), activation = 'relu', kernel_size=3, filters=16, padding='same'),
+    # tf.keras.layers.Conv2D(input_shape=(28,28,1), activation = 'relu', kernel_size=3, filters=32, padding='same'),
     # tf.keras.layers.BatchNormalization(),
-    tf.keras.layers.MaxPooling2D((2,2)),
-    tf.keras.layers.Conv2D(kernel_size=3, filters=32, padding='same'),
-    tf.keras.layers.BatchNormalization(),
-    # tf.keras.layers.Conv2D(input_shape=(28,28,1), activation = 'relu', kernel_size=3, filters=16, padding='same'),
+    # tf.keras.layers.MaxPooling2D((2,2)),
+    
+    # tf.keras.layers.Conv2D(kernel_size=3, filters=64, padding='same'),
     # tf.keras.layers.BatchNormalization(),
+    # tf.keras.layers.MaxPooling2D((2,2)),
+    
+    # tf.keras.layers.Conv2D(kernel_size=3, filters=64, padding='same'),
+    # tf.keras.layers.BatchNormalization(),
+    # tf.keras.layers.MaxPooling2D((2,2)),
+    
+    tf.keras.layers.Conv2D(input_shape=(28,28,1), kernel_size=3, filters=32, padding='same'),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Activation('relu'),
     tf.keras.layers.MaxPooling2D((2,2)),
+    
     tf.keras.layers.Conv2D(kernel_size=3, filters=64, padding='same'),
     tf.keras.layers.BatchNormalization(),
-    # tf.keras.layers.Conv2D(input_shape=(28,28,1), activation = 'relu', kernel_size=3, filters=16, padding='same'),
-    # tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Activation('relu'),
     tf.keras.layers.MaxPooling2D((2,2)),
     
     tf.keras.layers.Flatten(),
