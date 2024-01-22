@@ -1,9 +1,13 @@
 import tensorflow as tf
+# import tensorflow_addons as tfa
+# import tqdm
+
 #import tensorflow.compat.v1 as tf
 # tf.disable_v2_behavior()
 from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm.keras import TqdmCallback
 
 #data load
 mnist = tf.keras.datasets.mnist
@@ -86,7 +90,8 @@ model.summary()
 
 #model train
 print("Fit model")
-history = model.fit(x_train, y_train, epochs=10, 
+#tqdm_callback = tfa.callbacks.TQDMProgressBar()
+history = model.fit(x_train, y_train, epochs=10, verbose=1,
                     validation_data=(x_test, y_test))
 
 #model 평가
