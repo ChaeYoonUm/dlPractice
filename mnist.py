@@ -66,7 +66,7 @@ print("Fit model")
 #log 저장 -> tensorboard에서 출력
 # history = model.fit(x_train, y_train, epochs=10, verbose=1, batch_size=50,
 #                     validation_data=(x_test, y_test))
-history = model.fit(x_train, y_train, epochs=50, verbose=1, batch_size=32,
+history = model.fit(x_train, y_train, epochs=30, verbose=1, batch_size=32,
                     validation_data=(x_test, y_test),
                     callbacks=[tensorboard_callback])
 
