@@ -34,7 +34,7 @@ model = tf.keras.models.Sequential([
     tf.keras.layers.Conv2D(kernel_size=3, filters=32, padding='same'),
     tf.keras.layers.BatchNormalization(),
     tf.keras.layers.Activation('relu'),
-    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dropout(0.4),
     tf.keras.layers.MaxPooling2D((2,2)),
     
     tf.keras.layers.Flatten(),
@@ -43,13 +43,12 @@ model = tf.keras.models.Sequential([
     tf.keras.layers.Dense(10, activation='softmax')
     
 ])
+#learning rate decay
+# step_decay = tf.keras.optimizers.schedules.ExponentialDecay(
+#     initial_learning_rate=0.001, decay_steps=10000, decay_rate=0.96, staircase=True)
+
 #train 시작전 모델 구성 및 compile
-
-#learning rate 설정
-learning_rate = 0.001
-optimizer = tf.keras.optimizers.Adam(learning_rate)
-
-model.compile(optimizer=optimizer,
+model.compile(optimizer=keras.optimizers.Adam(0.001),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
@@ -67,7 +66,7 @@ print("Fit model")
 #log 저장 -> tensorboard에서 출력
 # history = model.fit(x_train, y_train, epochs=10, verbose=1, batch_size=50,
 #                     validation_data=(x_test, y_test))
-history = model.fit(x_train, y_train, epochs=17, verbose=1, batch_size=32,
+history = model.fit(x_train, y_train, epochs=50, verbose=1, batch_size=32,
                     validation_data=(x_test, y_test),
                     callbacks=[tensorboard_callback])
 

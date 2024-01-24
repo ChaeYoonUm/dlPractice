@@ -190,4 +190,4 @@ Z = Z.reshape(xx.shape)     #meshgrid 범위로 맞춰줘야 함
 fig = plt.figure()
 plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.7)
 plt.scatter(X[:, 0], X[:, 1], c=y, s=40,  edgecolor='k', cmap=plt.cm.Spectral) #s: 마커크기
-plt.show()
+#plt.show()
