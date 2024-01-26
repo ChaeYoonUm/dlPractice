@@ -65,6 +65,9 @@ class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
 
+        # Conv1d: 자연어 처리 - 1차원 convolution으로 진행
+        # Conv2d: 이미지 처리
+        # Conv3d: CT/비디오 처리
         # Layer1
         self.layer1 = torch.nn.Sequential(
             nn.Conv2d(kernel_size=3, in_channels=1, out_channels=16, padding='same'),
@@ -78,7 +81,7 @@ class ConvNet(nn.Module):
             nn.Conv2d(kernel_size=3, in_channels=16, out_channels=32, padding='same'),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Dropout2d(0.4),
+            nn.Dropout2d(0.4),  
             nn.MaxPool2d(2, stride=2))
         
         # Fully Connected Layer
@@ -109,7 +112,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 total_batch = len(data_loader)
 total_train = len(train_data)
 print('총 배치의 수 : {}'.format(total_batch)) # 50000 / 32 = 1563
-for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99%(validation best), 50 & 70에폭-worst 
+for epoch in range(10): #30에폭-test정확도: 99%, 40에폭-test정확도: 99%(validation best), 50 & 70에폭-worst 
     total = 0.0
     running_accuracy = 0.0
     running_vall_loss = 0.0 
@@ -136,13 +139,14 @@ for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99
             #progress bar에 loss 정보 추가
             tepoch.set_postfix(loss=loss.item())
             
+            """tensor.size()관련 메모"""
             #b= torch.tensor([[1,2,3], [2,3,4]])
             #b.size(dim=0) -> 2
             #b.size(dim=1) -> 3
         
         # tensorboard --logdir=runs --port=8000
-        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch)
-        writer.add_scalar('Accuracy/Train', total_acc/total_train*100, epoch)
+        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch) # -> tot_loss/1563 (왜냐면 for문이 1563번 도니까)
+        writer.add_scalar('Accuracy/Train', total_acc/total_train*100, epoch) # -> tot_acc/50000 (total_acc는 input 전체 값 더해지니까 /50000)
         
         # validation check
         with torch.no_grad():
@@ -152,24 +156,22 @@ for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99
                 predicted_outputs = model(inputs) 
                 val_loss = loss_fn(predicted_outputs, labels) 
              
-               # The label with the highest value will be our prediction 
+               # The label with the highest value will be our prediction
+               # _: 필요없는 값 저장 용도
                 _, predicted = torch.max(predicted_outputs, dim=1)
-                running_vall_loss += val_loss.item()  
-                total += labels.size(0) 
-                running_accuracy += (predicted == labels).sum().item() 
-        val_loss_value = running_vall_loss/len(val_data_loader) 
-        accuracy = (100 * running_accuracy / total) 
-        # print(f'val_loss_value: {len(val_data_loader)}')
-        # print(f'total: {total}')
+                running_vall_loss += val_loss.item()
+                total += labels.size(0)
+                running_accuracy += (predicted == labels).sum().item()
+        val_loss_value = running_vall_loss/len(val_data_loader)
+        accuracy = (100 * running_accuracy / total)
         writer.add_scalar('Loss/Validation', val_loss_value, epoch)
         writer.add_scalar('Accuracy/Validation', accuracy, epoch)
 
 #Tensorflow에서 model.evaluate()에 해당
 # Test
-size = len(test_data_loader.dataset)
+size = len(test_data_loader.dataset) #size = 10000
 num_batches = len(test_data_loader)
 #모델 평가 모드 - dropout, normalization 제외시키는 역할 - model.eval()
-#test = 10000개, batch=32 => 312번 loop
 model.eval()
 total_test_loss = 0.0
 loop = 0
@@ -190,6 +192,7 @@ print(f"Test Error: \nAccuracy: {(100*total_test_accuracy):>0.1f}%, Avg loss: {t
 
 #tensorboard write 중지
 writer.close()
+
 
 # inference
 test_batch_size=1000
@@ -220,8 +223,7 @@ for i in range(1, columns*rows+1):
     input_img = test_data[data_idx][0].unsqueeze(dim=0).to(device)
     output = model(input_img)
     
-    # _,: ignores the unneeded Tensor above.
-    argmax = torch.argmax(output, dim=1) #torch.max는 max값, index return 
+    argmax = torch.argmax(output, dim=1) #torch.max는 max값, index return, dim=1: 행으로 (행=열 방향) 
     pred = label_tags[argmax.item()]    #예측 라벨
     label = label_tags[test_data[data_idx][1]] #정답 라벨
     
