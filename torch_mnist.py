@@ -120,7 +120,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 total_batch = len(data_loader)
 total_train = len(train_data)
 print('총 배치의 수 : {}'.format(total_batch)) # 50000 / 32 = 1563
-for epoch in range(10): #30에폭-test정확도: 99%, 40에폭-test정확도: 99%(validation best), 50 & 70에폭-worst 
+for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99%(validation best), 50 & 70에폭-worst 
     total = 0.0
     running_accuracy = 0.0
     running_vall_loss = 0.0 
@@ -149,12 +149,12 @@ for epoch in range(10): #30에폭-test정확도: 99%, 40에폭-test정확도: 99
             
         
         # tensorboard --logdir=runs --port=8000
-        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch) # -> tot_loss/1563 (왜냐면 for문이 1563번 도니까)
+        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch) # -> tot_loss/1563 (for문이 1563번 도니까)
         writer.add_scalar('Accuracy/Train', total_acc/total_train*100, epoch) # -> tot_acc/50000 (total_acc는 input 전체 값 더해지니까 /50000)
         
         # validation check
-        with torch.no_grad():
-            model.eval()
+        with torch.no_grad(): 
+            model.eval() # eval() -> update (X)
             for data in val_data_loader: 
                 inputs, labels = data
                 predicted_outputs = model(inputs) 
@@ -178,11 +178,9 @@ num_batches = len(test_data_loader)
 #모델 평가 모드 - dropout, normalization 제외시키는 역할 - model.eval()
 model.eval()
 total_test_loss = 0.0
-loop = 0
 total_test_accuracy = 0.0
 with torch.no_grad():
     for data, target in test_data_loader:
-        loop += 1
         #data, target = data.to(device), target.to(device)
         pred = model(data)
         test_loss = loss_fn(pred, target).item()
