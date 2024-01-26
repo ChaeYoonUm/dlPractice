@@ -3,6 +3,7 @@ import torch.nn as nn
 import torchvision 
 from torchvision import transforms, datasets
 import torch.nn.functional as F
+from torch.utils.data import random_split
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -11,6 +12,21 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+
+""".item"""
+# 만약 tensor에 하나의 값만 존재한다면, 
+# .item() 을 사용하여 python scalar 값 뽑아옴. 
+# tensor에 하나의 값이 아니라 여러개가 존재한다면 사용 불가능
+
+"""torch.argmax(input, dimension)"""
+# dim X: tensor(max 값 index) 출력
+# dim = 0: 열을 기준으로 max 값이 있는 index를 출력
+# dim = 1: 행을 기준으로 max 값이 있는 index를 출력
+
+"""torch.max(input, dimension)"""
+# dim X: 최댓값과 인덱스 모두 출력
+# dim = 0: 열을 기준(각 열마다)으로 최댓값과 인덱스를 출력
+# dim = 1: 행을 기준(각 행마다)으로 최댓값과 인덱스를 동시에 출력
 
 device = (
     "cuda"
@@ -27,16 +43,22 @@ print(f"Using {device} device")
 train_data = torchvision.datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([transforms.ToTensor()])) # transforms.ToTensor() -> 0~1 값
 test_data = torchvision.datasets.MNIST('./data/MNIST', train=False, download=True, transform=transforms.Compose([transforms.ToTensor()])) # transforms.ToTensor() -> 0~1 값
 
+# train set -> train(50000) + val(10000)으로 쪼개기
+train_data, val_data = torch.utils.data.random_split(train_data, [50000, 10000])
+# print(len(train_data))
+# print(len(val_data))
+
+
 # Data loader: 데이터 불러오기
 # 학습에 사용될 전체 데이터(train_data) 가지고 있다가 iteration 개념으로 데이터 넘겨줌
-data_loader = torch.utils.data.DataLoader(train_data, batch_size=100)
-test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=100)
+batch_size = 32
+data_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
+test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False)
+val_data_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size, shuffle=False)
 
 # data/label 나누기
-x_train, y_train = train_data.data, train_data.targets
-x_test, y_test = test_data.data, test_data.targets
-
-print(len(test_data))
+#x_train, y_train = train_data.data, train_data.targets
+#x_test, y_test = test_data.data, test_data.targets
 
 # CNN
 class ConvNet(nn.Module):
@@ -74,55 +96,100 @@ class ConvNet(nn.Module):
         out = self.fc_layer(out)
         return out
 
+
 #Model 불러오기
 model = ConvNet().to(device)
 
 #Tensorflow에서 model.compile() 부분에 해당
-loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 포함되어 있음
+loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 & negative log liklihood까지 포함되어 있음
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 #Tensorflow에서 model.fit() 부분에 해당
-#Training
+#Training 
 total_batch = len(data_loader)
-print('총 배치의 수 : {}'.format(total_batch))
-for epoch in range(40):
-    with tqdm(data_loader, unit="batch") as tepoch:
+total_train = len(train_data)
+print('총 배치의 수 : {}'.format(total_batch)) # 50000 / 32 = 1563
+for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99%(validation best), 50 & 70에폭-worst 
+    total = 0.0
+    running_accuracy = 0.0
+    running_vall_loss = 0.0 
+    total_loss, total_acc = 0.0, 0.0
+    cnt = 0
+    with tqdm(data_loader, unit="batch") as tepoch: #progress bar, batch=32 -> 1563번 = 1epoch
         for X, Y in tepoch:
+            model.train()#train 단계임을 명시
             tepoch.set_description(f"Epoch {epoch+1}")
             
             prediction = model(X)
-            loss = loss_fn(prediction, Y)
-            accuracy = 1 - loss
+            loss = loss_fn(prediction, Y)   #Y: label
+            
+            total_loss += loss.item()
+            total_acc += (prediction.argmax(1)==Y).type(torch.float).sum().item()
             
             #Backpropagation
             optimizer.zero_grad()
             loss.backward()
+            
+            #parameter update
             optimizer.step()
             
-            # tensorboard --logdir=runs --port=8000
-            writer.add_scalar('Loss/Train', loss, epoch)
-            writer.add_scalar('Accuracy/Train', accuracy, epoch)
+            #progress bar에 loss 정보 추가
             tepoch.set_postfix(loss=loss.item())
-
+            
+            #b= torch.tensor([[1,2,3], [2,3,4]])
+            #b.size(dim=0) -> 2
+            #b.size(dim=1) -> 3
+        
+        # tensorboard --logdir=runs --port=8000
+        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch)
+        writer.add_scalar('Accuracy/Train', total_acc/total_train*100, epoch)
+        
+        # validation check
+        with torch.no_grad():
+            model.eval()
+            for data in val_data_loader: 
+                inputs, labels = data
+                predicted_outputs = model(inputs) 
+                val_loss = loss_fn(predicted_outputs, labels) 
+             
+               # The label with the highest value will be our prediction 
+                _, predicted = torch.max(predicted_outputs, dim=1)
+                running_vall_loss += val_loss.item()  
+                total += labels.size(0) 
+                running_accuracy += (predicted == labels).sum().item() 
+        val_loss_value = running_vall_loss/len(val_data_loader) 
+        accuracy = (100 * running_accuracy / total) 
+        # print(f'val_loss_value: {len(val_data_loader)}')
+        # print(f'total: {total}')
+        writer.add_scalar('Loss/Validation', val_loss_value, epoch)
+        writer.add_scalar('Accuracy/Validation', accuracy, epoch)
 
 #Tensorflow에서 model.evaluate()에 해당
 # Test
 size = len(test_data_loader.dataset)
 num_batches = len(test_data_loader)
 #모델 평가 모드 - dropout, normalization 제외시키는 역할 - model.eval()
+#test = 10000개, batch=32 => 312번 loop
 model.eval()
-test_loss, correct = 0, 0
+total_test_loss = 0.0
+loop = 0
+total_test_accuracy = 0.0
 with torch.no_grad():
-    for X, y in test_data_loader:
-        X, y = X.to(device), y.to(device)
-        pred = model(X) #prediction
-        test_loss += loss_fn(pred, y).item() 
-        correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-test_loss /= len(test_data_loader.dataset)
-correct /= size
-print(f"Test Error: \nAccuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
-writer.close()
+    for data, target in test_data_loader:
+        loop += 1
+        #data, target = data.to(device), target.to(device)
+        pred = model(data)
+        test_loss = loss_fn(pred, target).item()
+        
+        total_test_loss +=  test_loss
+        total_test_accuracy += (pred.argmax(1)==target).type(torch.float).sum().item()
 
+total_test_loss /= size
+total_test_accuracy /= size
+print(f"Test Error: \nAccuracy: {(100*total_test_accuracy):>0.1f}%, Avg loss: {total_test_loss:>8f} \n")
+
+#tensorboard write 중지
+writer.close()
 
 # inference
 test_batch_size=1000
@@ -141,17 +208,22 @@ label_tags = {
     8: '8', 
     9: '9' }
 for i in range(1, columns*rows+1):
+    #test set에서 인덱스 하나 랜덤으로 뽑기
     data_idx = np.random.randint(len(test_data))
+    
     #squeeze: 1인 값 지워줌 #[3, 1, 20, 128] -> [3, 20, 128]
     #unsqueeze: 1 추가(때문에 어디에 넣을지 지정해야 함) 
     #unsqueeze(1) # [3, 100, 100] -> [3, 1, 100, 100]
+    #If you have a single sample, just use input.unsqueeze(0) to add a fake batch dimension.
+    
+    #test_data에 data_idx의 0번 = X값 (input), 1번 = y값 (label)
     input_img = test_data[data_idx][0].unsqueeze(dim=0).to(device)
     output = model(input_img)
     
     # _,: ignores the unneeded Tensor above.
-    _, argmax = torch.max(output, 1)
-    pred = label_tags[argmax.item()]
-    label = label_tags[test_data[data_idx][1]]
+    argmax = torch.argmax(output, dim=1) #torch.max는 max값, index return 
+    pred = label_tags[argmax.item()]    #예측 라벨
+    label = label_tags[test_data[data_idx][1]] #정답 라벨
     
     fig.add_subplot(rows, columns, i)
     if pred == label:
@@ -165,17 +237,3 @@ for i in range(1, columns*rows+1):
     plt.axis('off')
     
 plt.show() 
-
-"""
-#MNIST에서 무작위 하나로 테스트 해보기
-r = random.randint(0, len(test_data)-1)
-X_single_data = test_data.test_data[r:r+1].view(-1, 28*28).float().to(device)
-Y_single_data = test_data.test_labels[r:r+1].to(device)
-
-print('Label: ', Y_single_data.item())
-single_prediction = model(X_single_data)
-print('Prediction: ', torch.argmax(single_prediction, 1).item())
-
-plt.imshow(test_data.test_data[r:r+1].view(28,28), cmap='Greys', interpolation='nearest')
-plt.show()
-"""

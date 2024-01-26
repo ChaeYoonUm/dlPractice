@@ -67,7 +67,8 @@ print("Fit model")
 # history = model.fit(x_train, y_train, epochs=10, verbose=1, batch_size=50,
 #                     validation_data=(x_test, y_test))
 history = model.fit(x_train, y_train, epochs=30, verbose=1, batch_size=32,
-                    validation_data=(x_test, y_test),
+                    #validation_data=(x_test, y_test)#,
+                    validation_split = 0.2,
                     callbacks=[tensorboard_callback])
 
 #model 평가
