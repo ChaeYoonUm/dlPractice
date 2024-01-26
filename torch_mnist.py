@@ -28,6 +28,12 @@ import random
 # dim = 0: 열을 기준(각 열마다)으로 최댓값과 인덱스를 출력
 # dim = 1: 행을 기준(각 행마다)으로 최댓값과 인덱스를 동시에 출력
 
+
+"""tensor.size()관련 메모"""
+#b= torch.tensor([[1,2,3], [2,3,4]])
+#b.size(dim=0) -> 2
+#b.size(dim=1) -> 3
+
 device = (
     "cuda"
     if torch.cuda.is_available()
@@ -69,6 +75,8 @@ class ConvNet(nn.Module):
         # Conv2d: 이미지 처리
         # Conv3d: CT/비디오 처리
         # Layer1
+        # padding='same': input/output 맞춰줌
+        # padding='valid': padding=0과 같음
         self.layer1 = torch.nn.Sequential(
             nn.Conv2d(kernel_size=3, in_channels=1, out_channels=16, padding='same'),
             nn.BatchNorm2d(16),
@@ -124,10 +132,10 @@ for epoch in range(10): #30에폭-test정확도: 99%, 40에폭-test정확도: 99
             tepoch.set_description(f"Epoch {epoch+1}")
             
             prediction = model(X)
-            loss = loss_fn(prediction, Y)   #Y: label
+            loss = loss_fn(prediction, Y)   # Y: label
             
             total_loss += loss.item()
-            total_acc += (prediction.argmax(1)==Y).type(torch.float).sum().item()
+            total_acc += (prediction.argmax(1)==Y).sum().item()
             
             #Backpropagation
             optimizer.zero_grad()
@@ -139,10 +147,6 @@ for epoch in range(10): #30에폭-test정확도: 99%, 40에폭-test정확도: 99
             #progress bar에 loss 정보 추가
             tepoch.set_postfix(loss=loss.item())
             
-            """tensor.size()관련 메모"""
-            #b= torch.tensor([[1,2,3], [2,3,4]])
-            #b.size(dim=0) -> 2
-            #b.size(dim=1) -> 3
         
         # tensorboard --logdir=runs --port=8000
         writer.add_scalar('Loss/Train', total_loss/total_batch, epoch) # -> tot_loss/1563 (왜냐면 for문이 1563번 도니까)
@@ -193,7 +197,7 @@ print(f"Test Error: \nAccuracy: {(100*total_test_accuracy):>0.1f}%, Avg loss: {t
 #tensorboard write 중지
 writer.close()
 
-
+"""
 # inference
 test_batch_size=1000
 columns = 6
@@ -213,10 +217,6 @@ label_tags = {
 for i in range(1, columns*rows+1):
     #test set에서 인덱스 하나 랜덤으로 뽑기
     data_idx = np.random.randint(len(test_data))
-    
-    #squeeze: 1인 값 지워줌 #[3, 1, 20, 128] -> [3, 20, 128]
-    #unsqueeze: 1 추가(때문에 어디에 넣을지 지정해야 함) 
-    #unsqueeze(1) # [3, 100, 100] -> [3, 1, 100, 100]
     #If you have a single sample, just use input.unsqueeze(0) to add a fake batch dimension.
     
     #test_data에 data_idx의 0번 = X값 (input), 1번 = y값 (label)
@@ -229,7 +229,7 @@ for i in range(1, columns*rows+1):
     
     fig.add_subplot(rows, columns, i)
     if pred == label:
-        plt.title(pred + ', right !!')
+        plt.title(pred + ', right')
         cmap = 'Blues'
     else:
         plt.title('Not ' + pred + ' but ' +  label)
@@ -239,3 +239,5 @@ for i in range(1, columns*rows+1):
     plt.axis('off')
     
 plt.show() 
+"""
+
