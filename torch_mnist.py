@@ -112,7 +112,7 @@ class ConvNet(nn.Module):
 model = ConvNet().to(device)
 
 #Tensorflow에서 model.compile() 부분에 해당
-loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 & negative log liklihood까지 포함되어 있음
+loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 & Negative Log Liklihood(NLL)까지 포함되어 있음
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 #Tensorflow에서 model.fit() 부분에 해당
@@ -120,7 +120,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 total_batch = len(data_loader)
 total_train = len(train_data)
 print('총 배치의 수 : {}'.format(total_batch)) # 50000 / 32 = 1563
-for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99%(validation best), 50 & 70에폭-worst 
+for epoch in range(40): #40 이상 -> overfitting
     total = 0.0
     running_accuracy = 0.0
     running_vall_loss = 0.0 
@@ -175,7 +175,7 @@ for epoch in range(40): #30에폭-test정확도: 99%, 40에폭-test정확도: 99
 # Test
 size = len(test_data_loader.dataset) #size = 10000
 num_batches = len(test_data_loader)
-#모델 평가 모드 - dropout, normalization 제외시키는 역할 - model.eval()
+#모델 평가 모드 - model.eval() => dropout, normalization 제외 
 model.eval()
 total_test_loss = 0.0
 total_test_accuracy = 0.0
@@ -186,11 +186,11 @@ with torch.no_grad():
         test_loss = loss_fn(pred, target).item()
         
         total_test_loss +=  test_loss
-        total_test_accuracy += (pred.argmax(1)==target).type(torch.float).sum().item()
+        total_test_accuracy += (pred.argmax(1)==target).type(torch.float).sum().item()  #dim=1: 행에서 가장 큰 값의 idx return 
 
 total_test_loss /= size
 total_test_accuracy /= size
-print(f"Test Error: \nAccuracy: {(100*total_test_accuracy):>0.1f}%, Avg loss: {total_test_loss:>8f} \n")
+print(f"=====Test Error===== \nAccuracy: {(100*total_test_accuracy):>0.1f}%, Avg loss: {total_test_loss:>8f} \n")
 
 #tensorboard write 중지
 writer.close()
