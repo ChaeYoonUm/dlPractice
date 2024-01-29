@@ -170,7 +170,14 @@ for epoch in range(40): #40 이상 -> overfitting
         accuracy = (100 * running_accuracy / total)
         writer.add_scalar('Loss/Validation', val_loss_value, epoch)
         writer.add_scalar('Accuracy/Validation', accuracy, epoch)
-
+        
+        """
+        #tensorboard에 한번에 표시
+        writer.add_scalar('Loss',{'Train': total_loss/total_batch,
+                                  'Validation': val_loss_value}, epoch )
+        writer.add_scalar('Accuracy',{'Train': total_acc/total_train*100,
+                                  'Validation': accuracy}, epoch )
+        """
 #Tensorflow에서 model.evaluate()에 해당
 # Test
 size = len(test_data_loader.dataset) #size = 10000
