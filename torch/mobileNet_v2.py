@@ -103,9 +103,11 @@ for idx in range(length):
             img = transform_to_img(padded_img)
             
             tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/'
+            # tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/'
             if not os.path.exists(tmpPath):
                 os.makedirs(tmpPath)
             img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
+            #img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
         cnt = 0
     print(f"done: {os.path.basename(tmp_csv_name[0])}")
   
