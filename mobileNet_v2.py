@@ -11,7 +11,7 @@ from PIL import Image
 from torch import tensor
 import warnings
 warnings.filterwarnings(action='ignore') # warning 무시
-import utils
+
 # class별로 출력
 #from sklearn.metrics import classification_report
 
@@ -26,7 +26,6 @@ import pandas as pd
 import glob
 import math
 from torchmetrics.classification import MulticlassPrecision, MulticlassRecall
-import torcheval
 
 transform = transforms.Compose([          
     transforms.ToTensor()])
@@ -41,7 +40,7 @@ cnt = 0
 # ppng = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
 
 #Test dataset 저장
-png_file_path = sorted(glob.glob('../Dataset/OCR_HolderName/**/*.png', recursive=True)) #116528
+png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/hold_name_test/**/*.png', recursive=True)) #116528
 
 # for i in range(len(ccsv)):
 #     tmp_csv_name = ccsv[i].split('.')
@@ -197,108 +196,105 @@ print(f"Using {device} device")
 
 num_classes = 30
 
+def conv3x3(in_channels, out_channels, stride):
+    nn.Sequential(
+            nn.Conv2d(kernel_size=3, in_channels=in_channels, out_channels=out_channels , padding = 1, stride=stride),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU6())
+
+def conv1x1(in_channels, out_channels):
+    nn.Sequential(
+            nn.Conv2d(kernel_size=1, in_channels=in_channels, out_channels=out_channels ,stride=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU6())
+
 class bottleNeckResidualBlock (nn.Module):
     # initialize
-    def __init__(self, in_channels, out_channels, t, stride=1): # t = expansion factor
+    def __init__(self, in_channels, out_channels, stride, t): # t = expansion factor
         super().__init__()
+        assert stride in [1,2] #예외처리 (stride는 1 또는 2)
         
-        #assert stride in [1,2]
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.stride = stride
+        widen = round(in_channels*t)
+        self.canSkipConnection = stride == 1 and in_channels == out_channels
+
+        # widen 안되는 경우
+        if t == 1:
+            self.conv = nn.Sequential(
+                nn.Conv2d(in_channels=widen, out_channels=widen, kernel_size=3, stride=stride, padding=1, groups=widen),
+                nn.BatchNorm2d(widen), #input size
+                nn.ReLU6(),
+                nn.Conv2d(in_channels=widen, out_channels=out_channels, kernel_size=1, stride=1),
+                nn.BatchNorm2d(out_channels)
+            )
         
-        expand = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels * t, 1, bias = False),
-            nn.BatchNorm2d(in_channels * t),
-            nn.ReLU6(inplace = True),
-        )
-        depthwise = nn.Sequential(
-            nn.Conv2d(in_channels * t, in_channels * t, 3, stride = stride, padding = 1, groups = in_channels * t, bias = False),
-            nn.BatchNorm2d(in_channels * t),
-            nn.ReLU6(inplace = True),
-        )
-        pointwise = nn.Sequential(
-            nn.Conv2d(in_channels * t, out_channels, 1, bias = False),
-            nn.BatchNorm2d(out_channels),
-        )
-        
-        residual_list = []
-        if t > 1:
-            residual_list += [expand]
-        residual_list += [depthwise, pointwise]
-        self.residual = nn.Sequential(*residual_list)
-    
-    def forward(self, x):
-        if self.stride == 1 and self.in_channels == self.out_channels:
-            out = self.residual(x) + x
+        # widen 되는 경우
         else:
-            out = self.residual(x)
-    
-        return out
+            self.conv = nn.Sequential(
+                nn.Conv2d(in_channels=in_channels, out_channels=widen, kernel_size=1, stride=1),
+                nn.BatchNorm2d(widen), #input size
+                nn.ReLU6(),
+                nn.Conv2d(in_channels=widen, out_channels=widen, kernel_size=3, stride=stride, padding=1, groups=widen),
+                nn.BatchNorm2d(widen),
+                nn.ReLU6(),
+                nn.Conv2d(in_channels=widen, out_channels=out_channels, kernel_size=1, stride=1),
+                nn.BatchNorm2d(out_channels)
+                # nn.Dropout2d(0.3)
+            )
+        
+    # skip connection 할지 말지
+    def forward(self, x):
+        if self.canSkipConnection:
+            return self.conv(x) + x
+        else:
+            return self.conv(x)
               
 class MobileNet_v2(nn.Module):
-    def __init__(self, n_classes = num_classes):
+    def __init__(self, classes=num_classes):
         super().__init__()
+        self.param = [ 
+            # 논문에 나온 parameter 순서: 
+            # [t, out_channels, repeat, stride]
+            
 
-        self.first_conv = nn.Sequential(
-            nn.Conv2d(3, 32, 3, stride = 2, padding = 1, bias = False),
-            nn.BatchNorm2d(32),
-            nn.ReLU6(inplace = True)
-        )
+	        [1, 16, 1 ,1],
+            [6, 24, 2, 2],
+            [6, 32, 3, 2],
+            [6, 64, 4, 2],
+            [6, 96, 3, 1],
+            [6, 160, 3, 2],
+            [6, 320, 1, 1]
+        ]
 
-        self.bottlenecks = nn.Sequential(
-            self.make_stage(32, 16, t = 1, n = 1),
-            self.make_stage(16, 24, t = 6, n = 2, stride = 2),
-            self.make_stage(24, 32, t = 6, n = 3, stride = 2),
-            self.make_stage(32, 64, t = 6, n = 4, stride = 2),
-            self.make_stage(64, 96, t = 6, n = 3),
-            self.make_stage(96, 160, t = 6, n = 3, stride = 2),
-            self.make_stage(160, 320, t = 6, n = 1)
-        )
-
-        self.last_conv = nn.Sequential(
-            nn.Conv2d(320, 1280, 1, bias = False),
-            nn.BatchNorm2d(1280),
-            nn.ReLU6(inplace = True)
-        )
-
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Sequential(
-        	nn.Dropout(0.2),
-            nn.Linear(1280, n_classes)
-        )
+        resBlock = bottleNeckResidualBlock
+        self.mobileNetV2_layers = [conv3x3(3, 32, 2)]	
+        in_channel = 32
+        for t, c, n, s in self.param:
+            for i in range(n):
+                self.mobileNetV2_layers.append(resBlock(in_channel, c, s, t))
+                in_channel = c
+        # self.mobileNetV2_layers = nn.Sequential(*mobileNetV2_layers) 
+        self.layers = nn.Sequential(*self.mobileNetV2_layers)
+        out_channels = 1280
+        self.lastconv = conv1x1(in_channel, out_channels)
+        self.avgPool = nn.AdaptiveAvgPool2d((1,1))
+        self.fc_layer = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(in_features=out_channels, out_features=classes))
     
     def forward(self, x):
-        x = self.first_conv(x)
-        x = self.bottlenecks(x)
-        x = self.last_conv(x)
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1) 
-        x = self.fc(x)
-        return x
-    
-    def make_stage(self, in_channels, out_channels, t, n, stride = 1):
-        layers = [bottleNeckResidualBlock(in_channels, out_channels, t, stride)]
-        in_channels = out_channels
-        for _ in range(n):
-            layers.append(bottleNeckResidualBlock(in_channels, out_channels, t))
-        
-        return nn.Sequential(*layers)
+        out = self.layers(x)  # error 발생 부분
+        out = self.lastconv(out)
+        out = self.avgPool(out)
+        out = self.fc_layer(out)
+        return out
 
-# from torchinfo import summary
-# # 모델 확인 
-# from torchvision import models
-# mobilenet_v2 = models.mobilenet_v2()
-# summary(mobilenet_v2, (2,3,224,224), device="cpu")
 
 
 #data augmentation
 aug = transforms.Compose([
-    # transforms.ColorJitter(brightness=0.2, contrast=0.2),
-    transforms.RandomAutocontrast(),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2),
     transforms.RandomAffine(degrees=0, shear=0.5),
     transforms.RandomHorizontalFlip(0.5),
-    # transforms.Grayscale(),
     transforms.ToTensor()
 ])
 
@@ -313,29 +309,24 @@ aug = transforms.Compose([
 #     outImg = toImg(augment)
 #     return outImg
 
+  
 
 batch_size = 128
 
-train_data = ImageFolder(root='../Dataset/OCR_HolderName/train',
+train_data = ImageFolder(root='C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/train',
                          transform=aug)
 train_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
-
-val_data = ImageFolder(root='../Dataset/OCR_HolderName/validation',
+val_data = ImageFolder(root='C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/validation',
                        transform=aug)
 val_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
 #Model 불러오기
 model = MobileNet_v2().to(device)
 
-# torch.tensor(..., device="cuda") 
-# torch.tensor(...).cuda() 
-# torch.tensor(...).to("cuda")
-model.to("cuda")
-
 #Tensorflow에서 model.compile() 부분에 해당
 loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 & Negative Log Liklihood(NLL)까지 포함되어 있음
-optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, momentum=0.9, eps=0.002) #learning rate = 0.001 Good
+optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=0.00004).to(device) 
 
 #Accuracy - Precision & Recall
 precision = MulticlassPrecision(num_classes=num_classes).to(device)
@@ -345,19 +336,16 @@ total_batch = len(train_data_loader)
 total_train = len(train_data)
 epoch_size = 100
 
-print(f'len: train data: {len(train_data_loader)}')
-
+print(f'len: train data: {len(train_data_loader)}') #7976
 for epoch in range(epoch_size): 
     total = 0.0
     running_accuracy = 0.0
     running_vall_loss = 0.0 
     total_loss, total_acc = 0.0, 0.0
     cnt = 0
-    with tqdm(train_data_loader, unit="batch") as tepoch: #progress bar, batch=32 -> 1563번 = 1epoch
+    with tqdm(train_data_loader, unit="batch") as tepoch: 
         for it, (X, Y) in enumerate(tepoch):
-            X, Y = X.cuda(),Y.cuda()
-
-            model.train()#train 단계임을 명시
+            model.train()	#train 단계임을 명시
             tepoch.set_description(f"Epoch {epoch+1}")
             
             prediction = model(X)
@@ -365,11 +353,11 @@ for epoch in range(epoch_size):
             
             total_loss += loss.item()
             
-            #acc_precision = precision(prediction, Y)
-            #print(f'Precision on batch {tepoch}: {acc_precision}')
+            acc_precision = precision(prediction, Y)
+            print(f'Precision on batch {tepoch}: {acc_precision}')
             
-            #acc_recall = recall(prediction, Y)
-            #print(f'Recall on batch {tepoch}: {acc_recall}')
+            acc_recall = recall(prediction, Y)
+            print(f'Recall on batch {tepoch}: {acc_recall}')
             
             #Backpropagation
             optimizer.zero_grad()
@@ -382,66 +370,56 @@ for epoch in range(epoch_size):
             tepoch.set_postfix(loss=loss.item())
         
 
-        #acc_precision = precision.compute()
-        #acc_recall = recall.compute()
+        acc_precision = precision.compute()
+        acc_recall = recall.compute()
         # tensorboard --logdir=runs --port=8000
         writer.add_scalar('Loss/Train', total_loss/total_batch, epoch) 
-        #writer.add_scalar('Precision/Train', acc_precision, epoch)
-        #writer.add_scalar('Recall/Train', acc_recall, epoch)
+        writer.add_scalar('Precision/Train', acc_precision, epoch)
+        writer.add_scalar('Recall/Train', acc_recall, epoch)
 
-        #precision.reset()
-        #recall.reset()
+        precision.reset()
+        recall.reset()
 
-        #val_acc_precision = MulticlassPrecision(num_classes=num_classes).to(device)
-        #val_acc_recall = MulticlassRecall(num_classes=num_classes).to(device)
+        val_acc_precision = MulticlassPrecision(num_classes=num_classes).to(device)
+        val_acc_recall = MulticlassRecall(num_classes=num_classes).to(device)
         # validation check
-        print("Validation")
         with torch.no_grad(): 
             model.eval() # eval() -> update (X)
-            with tqdm(train_data_loader, unit="batch") as valEpoch:
-                for val_it, (inputs, labels) in enumerate(val_data_loader): 
-                    inputs, labels = inputs.cuda(), labels.cuda()
-                    valEpoch.set_description(f"Validation Epoch {valEpoch+1}")
-                    
-                    predicted_outputs = model(inputs) 
-                    val_loss = loss_fn(predicted_outputs, labels) 
-                    
-                    # The label with the highest value will be our prediction
-                    _, predicted = torch.max(predicted_outputs, dim=1)
-                    running_vall_loss += val_loss.item()
-                    total += labels.size(0)
-                    running_accuracy += (predicted == labels).sum().item()
-                    valEpoch.set_postfix(loss=val_loss.item())
-                    #val_precision = val_acc_precision(predicted_outputs, labels)
-                    #vall_recall = val_acc_recall(predicted_outputs, labels)
+            for it, (inputs, labels) in enumerate(val_data_loader): 
+                predicted_outputs = model(inputs) 
+                val_loss = loss_fn(predicted_outputs, labels) 
+                
+                # The label with the highest value will be our prediction
+                _, predicted = torch.max(predicted_outputs, dim=1)
+                running_vall_loss += val_loss.item()
+                total += labels.size(0)
+                running_accuracy += (predicted == labels).sum().item()
+                val_precision = val_acc_precision(predicted_outputs, labels)
+                vall_recall = val_acc_recall(predicted_outputs, labels)
                 
         val_loss_value = running_vall_loss/len(val_data_loader)
         accuracy = (running_accuracy / total)
-        #val_precision = val_acc_precision.compute()
-        #vall_recall = val_acc_recall.compute()
+        val_precision = val_acc_precision.compute()
+        vall_recall = val_acc_recall.compute()
         writer.add_scalar('Loss/Validation', val_loss_value, epoch)
         writer.add_scalar('Accuracy/Validation', accuracy, epoch)
-        #writer.add_scalar('Precision/Validation', val_precision, epoch)
-        #writer.add_scalar('Recall/Validation', vall_recall, epoch)
-        #val_acc_precision.reset()
-        #val_acc_recall.reset()
+        writer.add_scalar('Precision/Validation', val_precision, epoch)
+        writer.add_scalar('Recall/Validation', vall_recall, epoch)
+        val_acc_precision.reset()
+        val_acc_recall.reset()
 
 # 모델 저장
 torch.save(model.state_dict(), 'model_state_dict.pt')
 model = MobileNet_v2()
 model.load_state_dict('model_state_dict.pt')
 
-
-
-
-"""
 class_list = ['100', '44',	'45',	'46',   '65',	
               '66',	'67',	'68',	'69',	'70',	'71',	'72',	'73',	'74',	
               '75',	'76',	'77',	'78',	'79',	'80',	'81',	
               '82',	'83',	'84',	'85',	'86',	'87',	'88',	'89',	'90']
 
 for i in class_list:
-    path = f'../Dataset/OCR_HolderName/test/'+class_list
+    path = f'C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/test/'+class_list
     test_data = ImageFolder(root=path)
     test_data_loader = DataLoader(dataset=test_data)
     
@@ -458,7 +436,6 @@ for i in class_list:
     with torch.no_grad():
         for it, (data, target) in enumerate(test_data_loader):
             pred = model(data)
-            data, target = data.cuda(), target.cuda()
             test_loss = loss_fn(pred, target).item()
             
             test_precision = test_acc_precision(pred, target)
@@ -476,106 +453,5 @@ for i in class_list:
 
     test_precision.reset()
     test_recall.reset()
-"""
 
-precision_score = MulticlassPrecision(num_classes=num_classes).to(device)
-recall_score = MulticlassRecall(num_classes=num_classes).to(device)
-f1_score = torcheval.metrics.functional.multiclass_f1_score(num_classes=num_classes)
-def evaluate_for_video(dataloader, net, idx_to_class):
-    target_all = [[] for _ in range(num_classes)]
-    pred_all = [[] for _ in range(num_classes)]
- 
-    target_all2 = []
-    pred_all2 = []
- 
-    for it, (inputs, targets) in enumerate(tqdm(dataloader)):
-        inputs = inputs.to(device)
-        targets = targets.to(device)
- 
-        # Forward pass
-        outputs = net(inputs)
-        _, pred = outputs.topk(1, dim=1, largest=True, sorted=True)
-        preds = pred.t().view(-1)
- 
-        for ii in range(len(outputs)):
-            # label = targets[ii]
-            # target_all[label].append(targets[ii].cpu().item())
-            # pred_all[label].append(preds[ii].cpu().item())
- 
-            pred_all2.append(preds[ii].cpu().item())
-            target_all2.append(targets[ii].cpu().item())
-           
-    for i in range(num_classes):
-        class_name = idx_to_class[i]
-        print(f"idx-class_name {i} {class_name}")
-    #     utils.get_confustion_matrix_score(class_name, target_all[i],  pred_all[i])
-       
-    utils.get_classification_report(target_all2, pred_all2)
-    return
- 
- 
-def test(model, test_dir='../Dataset/OCR_HolderName/test', datalist=None):
-    #testdir = os.path.join(args.data, 'test')
-    testdir = test_dir
-    test_dataset = datasets.ImageFolder(
-            testdir,
-            transforms.Compose([
-                transforms.ToTensor()
-        ]))
-    test_loader = torch.utils.data.DataLoader(
-                    test_dataset,
-                    batch_size = batch_size,
-                    shuffle = False,    
-                    num_workers = 4,
-                    pin_memory = True)
-    class_to_idx = test_dataset.class_to_idx
-    idx_to_class = {v: k for k, v in class_to_idx.items()}
-    evaluate_for_video(test_loader, model, idx_to_class)
-    return
- 
- 
-def get_classification_report(target_all, pred_all):
-    # print(classification_report(target_all, pred_all))
-    # precision_micro = precision_score(target_all, pred_all, average='micro')
-    # recall_micro = recall_score(target_all, pred_all, average='micro')
-    # f1_micro = f1_score(target_all, pred_all, average='micro')
-    # print(f" {precision_micro} {recall_micro} {f1_micro}")
- 
-    # precision_macro = precision_score(target_all, pred_all, average='macro')
-    # recall_macro = recall_score(target_all, pred_all, average='macro')
-    # a = f1_score(target_all, pred_all, average='macro')
-    # print(f" {precision_macro} {recall_macro} {recall_macro}")
-    precision = precision_score(target_all, pred_all, average='None')
-    recall = recall_score(target_all, pred_all, average='None')
-    f1_score = f1_score(target_all, pred_all, average='None')
- 
-    for i in range(len(precision)):
-        print(f"{i} {precision[i]} {recall[i]} {f1_score[i]}")
-    return
- 
-def get_confustion_matrix_score(class_name, pred_all, target_all):
- 
-    # print(pred_all)
-    # print(target_all)
-    # try :
-    #     tn, fp, fn, tp = confusion_matrix(target_all, pred_all, 30)
-    # except :
-    #     ret_conf = confusion_matrix(target_all, pred_all, 30)
-    #     print(f"Exception error :{ret_conf}")
-    #     tn = None
-    #     fp = None
-    #     fn = None
-    #     tp = None
-   
-    print(f" ================== {class_name} ==================")
-    # print(classification_report(target_all, pred_all))
-    precision = precision_score(target_all, pred_all, average='None')
-    recall = recall_score(target_all, pred_all, average='None')
-    # precision, recall = (tp / (tp+fp), tp / (tp+fn))
-    # print(f"class_name : {class_name} precision:{precision} \t recall:{recall} \t tn:{tn} \t fp:{fp} \t fn:{fn} \t tp:{tp}")
-    print(f"class_name : {class_name} precision:{precision} \t recall:{recall}")
-    return # precision, recall, tn, fp, fn, tp
-
-# Model Test
-test(model=model)
 writer.close()
