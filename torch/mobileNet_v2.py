@@ -245,7 +245,6 @@ class MobileNet_v2(nn.Module):
             nn.Conv2d(3, 32, 3, stride = 2, padding = 1, bias = False),
             nn.BatchNorm2d(32),
             nn.ReLU6(inplace = True),
-            nn.Dropout(0.2)
         )
 
         self.bottlenecks = nn.Sequential(
@@ -305,6 +304,10 @@ aug = transforms.Compose([
     transforms.ToTensor()
 ])
 
+toTensor = transforms.Compose([
+    transforms.ToTensor()
+])
+
 # def imgAugmentation(img):
 #     image = transform(img)
 #     cropped_img = torchvision.transforms.functional.crop(image, 2, 2, 220, 170)
@@ -324,7 +327,7 @@ train_data = ImageFolder(root='../Dataset/OCR_HolderName/train',
 train_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
 
-val_data = ImageFolder(root='../Dataset/OCR_HolderName/validation')
+val_data = ImageFolder(root='../Dataset/OCR_HolderName/validation', transform=toTensor)
 val_data_loader = DataLoader(dataset=val_data, batch_size=batch_size, shuffle=True)
 
 #Model 불러오기
