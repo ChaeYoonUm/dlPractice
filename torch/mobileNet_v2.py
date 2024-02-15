@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings(action='ignore') # warning 무시
 import utils
 # class별로 출력
-#from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter("MobileNetv2_logs")
@@ -185,14 +185,14 @@ for idx in range(7225, length):
 """ 
 
 #========MobileNet V2========#
-
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "gpu"
-    if torch.backends.mps.is_available()
-    else "cpu"
-)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = (
+#     "cuda"
+#     if torch.cuda.is_available()
+#     else "gpu"
+#     if torch.backends.mps.is_available()
+#     else "cpu"
+# )
 print(f"Using {device} device")
 
 num_classes = 30
@@ -211,6 +211,7 @@ class bottleNeckResidualBlock (nn.Module):
             nn.Conv2d(in_channels, in_channels * t, 1, bias = False),
             nn.BatchNorm2d(in_channels * t),
             nn.ReLU6(inplace = True),
+            
         )
         depthwise = nn.Sequential(
             nn.Conv2d(in_channels * t, in_channels * t, 3, stride = stride, padding = 1, groups = in_channels * t, bias = False),
@@ -243,7 +244,8 @@ class MobileNet_v2(nn.Module):
         self.first_conv = nn.Sequential(
             nn.Conv2d(3, 32, 3, stride = 2, padding = 1, bias = False),
             nn.BatchNorm2d(32),
-            nn.ReLU6(inplace = True)
+            nn.ReLU6(inplace = True),
+            nn.Dropout(0.2)
         )
 
         self.bottlenecks = nn.Sequential(
@@ -259,7 +261,8 @@ class MobileNet_v2(nn.Module):
         self.last_conv = nn.Sequential(
             nn.Conv2d(320, 1280, 1, bias = False),
             nn.BatchNorm2d(1280),
-            nn.ReLU6(inplace = True)
+            nn.ReLU6(inplace = True),
+            nn.Dropout(0.2)
         )
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -321,9 +324,8 @@ train_data = ImageFolder(root='../Dataset/OCR_HolderName/train',
 train_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
 
-val_data = ImageFolder(root='../Dataset/OCR_HolderName/validation',
-                       transform=aug)
-val_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
+val_data = ImageFolder(root='../Dataset/OCR_HolderName/validation')
+val_data_loader = DataLoader(dataset=val_data, batch_size=batch_size, shuffle=True)
 
 #Model 불러오기
 model = MobileNet_v2().to(device)
@@ -331,11 +333,10 @@ model = MobileNet_v2().to(device)
 # torch.tensor(..., device="cuda") 
 # torch.tensor(...).cuda() 
 # torch.tensor(...).to("cuda")
-model.to("cuda")
 
 #Tensorflow에서 model.compile() 부분에 해당
 loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 & Negative Log Liklihood(NLL)까지 포함되어 있음
-optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, momentum=0.9, eps=0.002) #learning rate = 0.001 Good
+optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, momentum=0.9, eps=0.002, weight_decay=0.00004 ) #learning rate = 0.001 Good ,weight_decay=0.00004
 
 #Accuracy - Precision & Recall
 precision = MulticlassPrecision(num_classes=num_classes).to(device)
@@ -346,6 +347,7 @@ total_train = len(train_data)
 epoch_size = 100
 
 print(f'len: train data: {len(train_data_loader)}')
+print(f'len: validation data: {len(val_data_loader)}')
 
 for epoch in range(epoch_size): 
     total = 0.0
@@ -353,7 +355,7 @@ for epoch in range(epoch_size):
     running_vall_loss = 0.0 
     total_loss, total_acc = 0.0, 0.0
     cnt = 0
-    with tqdm(train_data_loader, unit="batch") as tepoch: #progress bar, batch=32 -> 1563번 = 1epoch
+    with tqdm(train_data_loader, unit="batch") as tepoch: #progress bar, batch=128 -> 7976번 = 1epoch
         for it, (X, Y) in enumerate(tepoch):
             X, Y = X.cuda(),Y.cuda()
 
@@ -385,6 +387,7 @@ for epoch in range(epoch_size):
         #acc_precision = precision.compute()
         #acc_recall = recall.compute()
         # tensorboard --logdir=runs --port=8000
+        # tensorboard --logdir=MobileNetv2_logs --port=8000 --host 192.168.0.109
         writer.add_scalar('Loss/Train', total_loss/total_batch, epoch) 
         #writer.add_scalar('Precision/Train', acc_precision, epoch)
         #writer.add_scalar('Recall/Train', acc_recall, epoch)
@@ -398,10 +401,10 @@ for epoch in range(epoch_size):
         print("Validation")
         with torch.no_grad(): 
             model.eval() # eval() -> update (X)
-            with tqdm(train_data_loader, unit="batch") as valEpoch:
-                for val_it, (inputs, labels) in enumerate(val_data_loader): 
+            with tqdm(val_data_loader, unit="batch") as valEpoch:
+                for val_it, (inputs, labels) in enumerate(valEpoch): 
                     inputs, labels = inputs.cuda(), labels.cuda()
-                    valEpoch.set_description(f"Validation Epoch {valEpoch+1}")
+                    valEpoch.set_description(f"Validation Progress")
                     
                     predicted_outputs = model(inputs) 
                     val_loss = loss_fn(predicted_outputs, labels) 
@@ -568,7 +571,7 @@ def get_confustion_matrix_score(class_name, pred_all, target_all):
     #     tp = None
    
     print(f" ================== {class_name} ==================")
-    # print(classification_report(target_all, pred_all))
+    print(classification_report(target_all, pred_all))
     precision = precision_score(target_all, pred_all, average='None')
     recall = recall_score(target_all, pred_all, average='None')
     # precision, recall = (tp / (tp+fp), tp / (tp+fn))
