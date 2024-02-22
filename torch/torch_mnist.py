@@ -34,13 +34,14 @@ import random
 #b.size(dim=0) -> 2
 #b.size(dim=1) -> 3
 
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "gpu"
-    if torch.backends.mps.is_available()
-    else "cpu"
-)
+# device = (
+#     "cuda"
+#     if torch.cuda.is_available()
+#     else "gpu"
+#     if torch.backends.mps.is_available()
+#     else "cpu"
+# )
+device = 'cpu'
 print(f"Using {device} device")
 
 # MNIST 데이터 다운
@@ -171,6 +172,15 @@ for epoch in range(40): #40 이상 -> overfitting
         writer.add_scalar('Loss/Validation', val_loss_value, epoch)
         writer.add_scalar('Accuracy/Validation', accuracy, epoch)
         
+        
+        # torch.save(model, 'checkpoint/mnist/model_state_dict_%d.tar'%(epoch+1))
+        torch.save({
+        'epoch': epoch,
+        'optimizer_state_dict': optimizer.state_dict(),
+        'model_state_dict': model.state_dict(),
+        'loss': total_loss}, 
+                   'checkpoint/mnist/model_state_dict_%d.tar'%(epoch+1))
+        
         """
         #tensorboard에 한번에 표시
         writer.add_scalar('Loss',{'Train': total_loss/total_batch,
@@ -178,6 +188,9 @@ for epoch in range(40): #40 이상 -> overfitting
         writer.add_scalar('Accuracy',{'Train': total_acc/total_train*100,
                                   'Validation': accuracy}, epoch )
         """
+#모델 전체 저장 with parameter
+torch.save(model.state_dict(), 'checkpoint/model_state_dict.pt')
+
 #Tensorflow에서 model.evaluate()에 해당
 # Test
 size = len(test_data_loader.dataset) #size = 10000
@@ -202,7 +215,7 @@ print(f"=====Test Error===== \nAccuracy: {(100*total_test_accuracy):>0.1f}%, Avg
 #tensorboard write 중지
 writer.close()
 
-"""
+
 # inference
 test_batch_size=1000
 columns = 6
@@ -243,6 +256,4 @@ for i in range(1, columns*rows+1):
     plt.imshow(plot_img, cmap=cmap)
     plt.axis('off')
     
-plt.show() 
-"""
-
+plt.show()

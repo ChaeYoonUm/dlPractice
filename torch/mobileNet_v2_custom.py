@@ -2,6 +2,8 @@ import torch
 import csv
 import torch.nn as nn
 import torchvision 
+import random
+import shutil
 from torchvision import transforms, datasets
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import functional
@@ -19,7 +21,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter("MobileNetv2_logs")
+writer = SummaryWriter("MobileNetv2_logs_custom")
 from tqdm import tqdm
 
 import numpy as np
@@ -37,115 +39,134 @@ transform = transforms.Compose([
 sum = 0
 cnt = 0
 
-
-
-#ccsv = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.csv', recursive=True)) #116528
-#png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
-# ppng = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
+#Train dataset 저장
+train_png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
 
 #Test dataset 저장
-png_file_path = sorted(glob.glob('../Dataset/OCR_HolderName/**/*.png', recursive=True)) #1560158
+test_png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/hold_name_test/**/*.png', recursive=True)) #116528
 
-# for i in range(len(ccsv)):
-#     tmp_csv_name = ccsv[i].split('.')
-#     ccsv[i] = tmp_csv_name[0]
-# for i in range(len(ppng)):
-#     tmp_png_name = ppng[i].split('.')
-#     ppng[i] = tmp_png_name[0]
+origin_train_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/train/**/*.png', recursive=True))
 
-# set_csv = set(ccsv)
-# set_png = set(ppng)
-# gone_file = list(set_csv - set_png)
-# print(gone_file)
+origin_test_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/test/**/*.png', recursive=True))
+
+origin_val_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/validation/**/*.png', recursive=True))
+
+custom_val_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/custom_dataset/validation/**/*.png', recursive=True))
+
+     
 # ==== PNG 없는 파일 ====#
 #['C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0430\\Holder_name_alpabet\\0293_9445411545060702\\00174_16_9445411545060702_0820_PARKHAECHUL_cardBox', 
 # 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0510\\InsufficientAlphabet_Set\\TextFrame', 
 # 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0409\\hold_name_new\\0346\\001087_100000lux_cardBox', 
 # 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0430\\Holder_name_alpabet\\0293_9445411545060702\\00176_16_9445411545060702_0820_PARKHAECHUL_cardBox']
 
+#hold_name = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/hold_name_0409/hold_name_new/0008/*.png', recursive=True))
+
 """        
 # Train data 추출
 """ 
-# csv_file_path = []
-# for i in range(len(png_file_path)):
-#     tmp_csv_name = os.path.splitext(png_file_path[i])
-#     csv_file_path.append(tmp_csv_name[0]+'.csv')
+train_csv_file_path = []
+for i in range(len(train_png_file_path)):
+    tmp_csv_name = os.path.splitext(train_png_file_path[i])
+    train_csv_file_path.append(tmp_csv_name[0]+'.csv')
 
-# print(f'csv file: {len(csv_file_path)}')
-# print(f'png file: {len(png_file_path)}')
+print(f'csv file: {len(train_csv_file_path)}')
+print(f'png file: {len(train_png_file_path)}')
 
-# length = len(png_file_path)
-# for idx in range(length):
-#     tmp_csv_name = os.path.splitext(csv_file_path[idx])   #split => return list
-#     tmp_png_name = os.path.splitext(png_file_path[idx])
-#     if(tmp_csv_name[0] == tmp_png_name[0]):
-#         data = pd.read_csv(csv_file_path[idx], index_col=False, header=None, sep=';') #header=None(주의!!)
-#         image = cv2.imread(png_file_path[idx])
-#         image = transform(image)
-#         #print(data[1][0])   #열-행
-#         len = data.shape
-#         etc = data[5][0]
-        
-#         for i in range(len[0]):
-#             cnt+=1
-#             tmpLabel = data[0][i]
-#             #print(tmpLabel)
-#             if type(tmpLabel) is str:
-#                 if etc == -1:
-#                     label = 100 #blank
-#                 else:
-#                     label = ord(tmpLabel)
-#             elif type(tmpLabel) is int:
-#                 if etc is int:
-#                     label = tmpLabel
-#                 elif type(etc) is float:
-#                      if 1 <= tmpLabel and tmpLabel <= 26:
-#                         label = tmpLabel+64
-#                 elif etc == ' ':
-#                      if 1 <= tmpLabel and tmpLabel <= 26:
-#                         label = tmpLabel+64
-#             elif type(tmpLabel) is float:
-#                 label = 100
-            
-#             pos = []
-#             for j in range(1, len[1]):
-#                 pos.append(data[j][i])
-#             # 이미지 편집
-#             cropped_img = torchvision.transforms.functional.crop(image, pos[1]-5, pos[0]-5, pos[3]+10, pos[2]+15)   # 자르기
-#             resize = torchvision.transforms.Resize((220, 220)) # 확대
-#             enlarged_img = resize(cropped_img)
-#             padded_img = torchvision.transforms.functional.pad(enlarged_img, (2,2,2,2), fill=0)  # padding
-#             transform_to_img = transforms.ToPILImage()
-#             img = transform_to_img(padded_img)
-            
-#             #tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/'
-#             tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/'
-#             if not os.path.exists(tmpPath):
-#                 os.makedirs(tmpPath)
-#             #img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
-#             img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
-#         cnt = 0
-#     print(f"done: index: {idx} {os.path.basename(tmp_csv_name[0])}")
+for i in range(len(origin_train_path)):
+    origin_train_path[i] = os.path.basename(origin_train_path[i])
+print(f'origin train data: {len(origin_train_path)}')
 
-"""
-# Test data 추출
+for i in range(len(origin_val_path)):
+    origin_val_path[i] = os.path.basename(origin_val_path[i])
+print(f'origin train data: {len(origin_val_path)}')
 
-print(f'{len(png_file_path)}')
-csv_file_path = []
-for i in range(len(png_file_path)):
-    tmp_csv_name = os.path.splitext(png_file_path[i])
-    csv_file_path.append(tmp_csv_name[0]+'.csv')
-
-print(f'csv file: {len(csv_file_path)}')
-print(f'png file: {len(png_file_path)}')
-
-length = len(png_file_path)
-for idx in range(7225, length):
-    tmp_csv_name = os.path.splitext(csv_file_path[idx])   #split => return list
-    tmp_png_name = os.path.splitext(png_file_path[idx])
+length = len(train_png_file_path)
+for idx in range(length):
+    tmp_csv_name = os.path.splitext(train_csv_file_path[idx])   #split => return list
+    tmp_png_name = os.path.splitext(train_png_file_path[idx])
     if(tmp_csv_name[0] == tmp_png_name[0]):
-        data = pd.read_csv(csv_file_path[idx], index_col=False, header=None) #header=None(주의!!)
-        image = cv2.imread(png_file_path[idx])
+        data = pd.read_csv(train_csv_file_path[idx], index_col=False, header=None, sep=';') #header=None(주의!!)
+        image = cv2.imread(train_png_file_path[idx])
+        image = transform(image)
+        #print(data[1][0])   #열-행
+        data_len = data.shape
+        etc = data[5][0]
+        
+        for i in range(data_len[0]):
+            cnt+=1
+            tmpLabel = data[0][i]
+            #print(tmpLabel)
+            if type(tmpLabel) is str:
+                if etc == -1:
+                    label = 100 #blank
+                else:
+                    label = ord(tmpLabel)
+            elif type(tmpLabel) is int:
+                if etc is int:
+                    label = tmpLabel
+                elif type(etc) is float:
+                     if 1 <= tmpLabel and tmpLabel <= 26:
+                        label = tmpLabel+64
+                elif etc == ' ':
+                     if 1 <= tmpLabel and tmpLabel <= 26:
+                        label = tmpLabel+64
+            elif type(tmpLabel) is float:
+                label = 100
+            
+            pos = []
+            for j in range(1, data_len[1]):
+                pos.append(data[j][i])
+            
+            # 이미지 편집
+            crop_pixel = random.randint(1,2)
+            cropped_img = torchvision.transforms.functional.crop(image, pos[1]-crop_pixel, pos[0]-crop_pixel, pos[3]+crop_pixel, pos[2]+crop_pixel)   # 자르기
+            resize = torchvision.transforms.Resize((46, 46)) # 확대
+            enlarged_img = resize(cropped_img)
+            padded_img = torchvision.transforms.functional.pad(enlarged_img, (1,1,1,1), fill=0)  # padding
+            transform_to_img = transforms.ToPILImage()
+            img = transform_to_img(padded_img)
+            
+            #tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/'
+            
+            tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/custom_dataset/train/{label}/'
+            tmpValPath = f'C:/Users/QR22002/Desktop/chaeyun/custom_dataset/validation/{label}/'
+            
+            if not os.path.exists(tmpPath):
+                os.makedirs(tmpPath)
+            if not os.path.exists(tmpValPath):
+                os.makedirs(tmpValPath)
+            
+            comparePath = f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png'
+        
+            if comparePath in origin_train_path:
+                print(f'same: {comparePath}')
+                img.save(tmpPath + comparePath)
+            elif comparePath in origin_val_path:
+                print(f'not same: {comparePath}')
+                img.save(tmpValPath + comparePath)
+            #img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
+        cnt = 0
+    print(f"done: index: {idx} {os.path.basename(tmp_csv_name[0])}")
+exit()
+
+# Test data 추출
+print(f'{len(test_png_file_path)}')
+test_csv_file_path = []
+for i in range(len(test_png_file_path)):
+    tmp_csv_name = os.path.splitext(test_png_file_path[i])
+    test_csv_file_path.append(tmp_csv_name[0]+'.csv')
+
+print(f'csv file: {len(test_csv_file_path)}')
+print(f'png file: {len(test_png_file_path)}')
+
+length = len(test_png_file_path)
+for idx in range(length):
+    tmp_csv_name = os.path.splitext(test_csv_file_path[idx])   #split => return list
+    tmp_png_name = os.path.splitext(test_png_file_path[idx])
+    if(tmp_csv_name[0] == tmp_png_name[0]):
+        data = pd.read_csv(test_csv_file_path[idx], index_col=False, header=None) #header=None(주의!!)
+        image = cv2.imread(test_png_file_path[idx])
         image = transform(image)
         #print(data[1][0])   #열-행
         len = data.shape
@@ -170,22 +191,26 @@ for idx in range(7225, length):
                     
             # 이미지 편집
             if flag == True: continue
-            cropped_img = torchvision.transforms.functional.crop(image, pos[1]-5, pos[0]-5, pos[3]+10, pos[2]+15)   # 자르기
-            resize = torchvision.transforms.Resize((220, 220)) # 확대
+            crop_pixel = random.randint(1,2)
+            cropped_img = torchvision.transforms.functional.crop(image, pos[1]-crop_pixel, pos[0]-crop_pixel, pos[3]+crop_pixel, pos[2]+crop_pixel)   # 자르기
+            resize = torchvision.transforms.Resize((46, 46)) # 확대
             enlarged_img = resize(cropped_img)
-            padded_img = torchvision.transforms.functional.pad(enlarged_img, (2,2,2,2), fill=0)  # padding
+            padded_img = torchvision.transforms.functional.pad(enlarged_img, (1,1,1,1), fill=0)  # padding
             transform_to_img = transforms.ToPILImage()
             img = transform_to_img(padded_img)
             
             #tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/'
-            tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/'
+            tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/custom_dataset/test/{label}/'
             if not os.path.exists(tmpPath):
                 os.makedirs(tmpPath)
             #img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
-            img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
+            img.save(tmpPath + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
         cnt = 0
     print(f"done: index: {idx} {os.path.basename(tmp_csv_name[0])}")
-""" 
+
+
+
+
 
 #========MobileNet V2========#
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -238,24 +263,24 @@ class MobileNet_v2(nn.Module):
         super().__init__()
 
         self.first_conv = nn.Sequential(
-            nn.Conv2d(3, 32, 3, stride = 2, padding = 1, bias = False),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(3, 16, 3, stride = 2, padding = 1, bias = False),
+            nn.BatchNorm2d(16),
             nn.ReLU6(inplace = True),
         )
 
         self.bottlenecks = nn.Sequential(
-            self.make_stage(32, 16, t = 1, n = 1),
-            self.make_stage(16, 24, t = 6, n = 2, stride = 2),
-            self.make_stage(24, 32, t = 6, n = 3, stride = 2),
-            self.make_stage(32, 64, t = 6, n = 4, stride = 2),
-            self.make_stage(64, 96, t = 6, n = 3),
-            self.make_stage(96, 160, t = 6, n = 3, stride = 2),
-            self.make_stage(160, 320, t = 6, n = 1)
+            self.make_stage(16, 8, t = 1, n = 1),
+            self.make_stage(8, 12, t = 6, n = 2, stride = 1),
+            self.make_stage(12, 16, t = 6, n = 3, stride = 2),
+            self.make_stage(16, 32, t = 6, n = 4, stride = 1),
+            self.make_stage(32, 68, t = 6, n = 3),
+            self.make_stage(68, 80, t = 6, n = 3, stride = 2),
+            self.make_stage(80, 160, t = 6, n = 1)
         )
 
         self.last_conv = nn.Sequential(
-            nn.Conv2d(320, 1280, 1, bias = False),
-            nn.BatchNorm2d(1280),
+            nn.Conv2d(160, 320, 1, bias = False),
+            nn.BatchNorm2d(320),
             nn.ReLU6(inplace = True),
             nn.Dropout(0.2)
         )
@@ -263,7 +288,7 @@ class MobileNet_v2(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Sequential(
         	nn.Dropout(0.2),
-            nn.Linear(1280, n_classes)
+            nn.Linear(320, n_classes)
         )
     
     def forward(self, x):
@@ -516,7 +541,7 @@ for epoch in range(epoch_size):
 # torch.save(model, 'model_state_dict.pth')
 
 # model = MobileNet_v2()
-model.load_state_dict('model_state_dict_48.pth')
+# model.load_state_dict('model_state_dict_48.pth')
 # model.eval()
 # model = torch.load('model.pth')
 

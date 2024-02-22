@@ -87,20 +87,10 @@ class myKNN:
         
         # 최빈값
         count_items = Counter(slicedLabels)
-        max_item = count_items.most_common(n=1)
-        """_summary_
-
-        Args:
-            X (_type_): _description_
-            test (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """        # print(max_item[0][0])
+        max_item = count_items.most_common(n=1) #n: 뽑아낼 최빈값 개수
         return max_item[0][0]
 
 #Real Test
-
 knn = myKNN(3)
 knn.train(coord, labels)
 myNeighbors = knn.predict(coord, testData)
@@ -173,7 +163,6 @@ for idx, data in enumerate(datalist):
         print(f"(x,y)=({data[0]},{data[1]}) label : {data[2]} Not Equal")
 
 print(f"equal : {num_equal}, notEqual : {Total_num - num_equal}")
-
 
 # KNN 결과 이미지 저장 및 출력
 img = cv2.resize(img, (500, 500), interpolation=cv2.INTER_LINEAR) # interpolation=cv2.INTER_NEAREST
