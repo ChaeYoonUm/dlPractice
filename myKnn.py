@@ -5,7 +5,7 @@ from collections import Counter
 import matplotlib.colors as mcolors
 import cv2
 
-dataSize = 500
+dataSize = 10
 
 # create dataset randomly
 tmp1Datalist = np.random.randint(1, dataSize+1, (dataSize, 2))
@@ -35,12 +35,12 @@ print("=====Test Data=====")
 testData = [[10, 3, -1]]
 _testData = np.array(testData)
 print(_testData)
-allDataset = np.append(datalist, _testData, axis=0)
+allDataset = np.append(datalist, _testData, axis=0) #axis=0: 행으로 붙이기 (그냥 추가 느낌), axis=1: 열로 붙이기 (size 주의해야 함)
 
 # x, y 좌표와 라벨 분리
-x = [item[0] for item in datalist]
-y = [item[1] for item in datalist]
-labels = [item[2] for item in datalist]
+x = [x_coord[0] for x_coord in datalist]
+y = [y_coord[1] for y_coord in datalist]
+labels = [label[2] for label in datalist]
 
 #Test Data 추가된 리스트
 _x =  [item[0] for item in allDataset]
@@ -49,8 +49,8 @@ _labels = [item[2] for item in allDataset]
 
 # training data의 (x,y) 좌표 - coord에 저장
 coord = []
-for i in range(datalist.shape[0]):
-    coord.append([datalist[0], datalist[1]])
+for i in range(datalist.shape[0]): #datalist.shape = (500,3)
+    coord.append([x[i], y[i]])
 
 # 라벨에 따른 색상 지정
 colors = ['red' if label == 0 else 'limegreen' if label == 1 else 'blue' if label == 2 else 'orange' for label in _labels]
@@ -103,11 +103,13 @@ plt.show()
 
 
 # KNN 전체적인 boudary 그리기 
-res_label = np.zeros((dataSize+1,dataSize+1,1), np.uint8) # predict한 라벨 값 저장
-res = np.zeros((dataSize+1,dataSize+1,3), np.uint8)  # (높이)x(행)x(열)
+res_label = np.zeros((dataSize+1,dataSize+1,1), np.uint8) # predict한 라벨 값 저장,
+#np.zeros의 크기 (a,b,c)
+#=> bxc 행렬이 a개 있음
+
+res = np.zeros((dataSize+1,dataSize+1,3), np.uint8)  # dataSize x 3 행렬이 dataSize개만큼 있음
 dataNum = len(datalist)
 print("=====res=====")
-print(res)
 for i in range(dataNum) :
     for j in range(dataNum):
         
@@ -154,8 +156,7 @@ for idx, data in enumerate(datalist):
     # enumerate => return tuple
     # idx와 element 각각 따로 뽑고 싶으면 
     # idx, data in enumerate(~)
-    
-    # datalist => (x,y,lable)
+    # datalist => (x,y,label)
     if res_label[data[1],data[0],0] == data[2]:
         print(f"(x,y)=({data[0]},{data[1]}) label : {data[2]} Equal")
         num_equal = num_equal + 1

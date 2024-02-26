@@ -24,200 +24,18 @@ from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter("MobileNetv2_logs_custom")
 from tqdm import tqdm
 
-import numpy as np
 import matplotlib.pyplot as plt
-import os
 import pandas as pd
-import glob
-import math
-# from torchmetrics.classification import MulticlassPrecision, MulticlassRecall
 import torcheval
 
 transform = transforms.Compose([          
     transforms.ToTensor()])
-
 sum = 0
 cnt = 0
-
-#Train dataset 저장
-train_png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
-
-#Test dataset 저장
-test_png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/hold_name_test/**/*.png', recursive=True)) #116528
-
-origin_train_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/train/**/*.png', recursive=True))
-
-origin_test_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/test/**/*.png', recursive=True))
-
-origin_val_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/dataset/validation/**/*.png', recursive=True))
-
-custom_val_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/custom_dataset/validation/**/*.png', recursive=True))
-
-     
-# ==== PNG 없는 파일 ====#
-#['C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0430\\Holder_name_alpabet\\0293_9445411545060702\\00174_16_9445411545060702_0820_PARKHAECHUL_cardBox', 
-# 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0510\\InsufficientAlphabet_Set\\TextFrame', 
-# 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0409\\hold_name_new\\0346\\001087_100000lux_cardBox', 
-# 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0430\\Holder_name_alpabet\\0293_9445411545060702\\00176_16_9445411545060702_0820_PARKHAECHUL_cardBox']
-
-#hold_name = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/hold_name_0409/hold_name_new/0008/*.png', recursive=True))
-
-"""        
-# Train data 추출
-""" 
-train_csv_file_path = []
-for i in range(len(train_png_file_path)):
-    tmp_csv_name = os.path.splitext(train_png_file_path[i])
-    train_csv_file_path.append(tmp_csv_name[0]+'.csv')
-
-print(f'csv file: {len(train_csv_file_path)}')
-print(f'png file: {len(train_png_file_path)}')
-
-for i in range(len(origin_train_path)):
-    origin_train_path[i] = os.path.basename(origin_train_path[i])
-print(f'origin train data: {len(origin_train_path)}')
-
-for i in range(len(origin_val_path)):
-    origin_val_path[i] = os.path.basename(origin_val_path[i])
-print(f'origin train data: {len(origin_val_path)}')
-
-length = len(train_png_file_path)
-for idx in range(length):
-    tmp_csv_name = os.path.splitext(train_csv_file_path[idx])   #split => return list
-    tmp_png_name = os.path.splitext(train_png_file_path[idx])
-    if(tmp_csv_name[0] == tmp_png_name[0]):
-        data = pd.read_csv(train_csv_file_path[idx], index_col=False, header=None, sep=';') #header=None(주의!!)
-        image = cv2.imread(train_png_file_path[idx])
-        image = transform(image)
-        #print(data[1][0])   #열-행
-        data_len = data.shape
-        etc = data[5][0]
-        
-        for i in range(data_len[0]):
-            cnt+=1
-            tmpLabel = data[0][i]
-            #print(tmpLabel)
-            if type(tmpLabel) is str:
-                if etc == -1:
-                    label = 100 #blank
-                else:
-                    label = ord(tmpLabel)
-            elif type(tmpLabel) is int:
-                if etc is int:
-                    label = tmpLabel
-                elif type(etc) is float:
-                     if 1 <= tmpLabel and tmpLabel <= 26:
-                        label = tmpLabel+64
-                elif etc == ' ':
-                     if 1 <= tmpLabel and tmpLabel <= 26:
-                        label = tmpLabel+64
-            elif type(tmpLabel) is float:
-                label = 100
-            
-            pos = []
-            for j in range(1, data_len[1]):
-                pos.append(data[j][i])
-            
-            # 이미지 편집
-            crop_pixel = random.randint(1,2)
-            cropped_img = torchvision.transforms.functional.crop(image, pos[1]-crop_pixel, pos[0]-crop_pixel, pos[3]+crop_pixel, pos[2]+crop_pixel)   # 자르기
-            resize = torchvision.transforms.Resize((46, 46)) # 확대
-            enlarged_img = resize(cropped_img)
-            padded_img = torchvision.transforms.functional.pad(enlarged_img, (1,1,1,1), fill=0)  # padding
-            transform_to_img = transforms.ToPILImage()
-            img = transform_to_img(padded_img)
-            
-            #tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/'
-            
-            tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/custom_dataset/train/{label}/'
-            tmpValPath = f'C:/Users/QR22002/Desktop/chaeyun/custom_dataset/validation/{label}/'
-            
-            if not os.path.exists(tmpPath):
-                os.makedirs(tmpPath)
-            if not os.path.exists(tmpValPath):
-                os.makedirs(tmpValPath)
-            
-            comparePath = f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png'
-        
-            if comparePath in origin_train_path:
-                print(f'same: {comparePath}')
-                img.save(tmpPath + comparePath)
-            elif comparePath in origin_val_path:
-                print(f'not same: {comparePath}')
-                img.save(tmpValPath + comparePath)
-            #img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/test/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
-        cnt = 0
-    print(f"done: index: {idx} {os.path.basename(tmp_csv_name[0])}")
-exit()
-
-# Test data 추출
-print(f'{len(test_png_file_path)}')
-test_csv_file_path = []
-for i in range(len(test_png_file_path)):
-    tmp_csv_name = os.path.splitext(test_png_file_path[i])
-    test_csv_file_path.append(tmp_csv_name[0]+'.csv')
-
-print(f'csv file: {len(test_csv_file_path)}')
-print(f'png file: {len(test_png_file_path)}')
-
-length = len(test_png_file_path)
-for idx in range(length):
-    tmp_csv_name = os.path.splitext(test_csv_file_path[idx])   #split => return list
-    tmp_png_name = os.path.splitext(test_png_file_path[idx])
-    if(tmp_csv_name[0] == tmp_png_name[0]):
-        data = pd.read_csv(test_csv_file_path[idx], index_col=False, header=None) #header=None(주의!!)
-        image = cv2.imread(test_png_file_path[idx])
-        image = transform(image)
-        #print(data[1][0])   #열-행
-        len = data.shape
-        
-        if len[1] != 5: # 열 != 5 => skip
-            continue
-        
-        for i in range(len[0]):
-            cnt+=1
-            tmpLabel = data[0][i]
-            
-            label = int(tmpLabel)+64
-            
-            pos = []
-            flag = False
-            for j in range(1, len[1]):
-                if pd.isna(data[j][i]):
-                    flag = True
-                    continue
-                else:
-                    pos.append(int(data[j][i]))
-                    
-            # 이미지 편집
-            if flag == True: continue
-            crop_pixel = random.randint(1,2)
-            cropped_img = torchvision.transforms.functional.crop(image, pos[1]-crop_pixel, pos[0]-crop_pixel, pos[3]+crop_pixel, pos[2]+crop_pixel)   # 자르기
-            resize = torchvision.transforms.Resize((46, 46)) # 확대
-            enlarged_img = resize(cropped_img)
-            padded_img = torchvision.transforms.functional.pad(enlarged_img, (1,1,1,1), fill=0)  # padding
-            transform_to_img = transforms.ToPILImage()
-            img = transform_to_img(padded_img)
-            
-            #tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/'
-            tmpPath = f'C:/Users/QR22002/Desktop/chaeyun/custom_dataset/test/{label}/'
-            if not os.path.exists(tmpPath):
-                os.makedirs(tmpPath)
-            #img.save(f'C:/Users/QR22002/Desktop/chaeyun/dataset/train/{label}/' + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
-            img.save(tmpPath + f'{os.path.basename(tmp_csv_name[0])}' + '_' + f'{cnt}.png')
-        cnt = 0
-    print(f"done: index: {idx} {os.path.basename(tmp_csv_name[0])}")
-
-
-
-
-
 #========MobileNet V2========#
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device} device")
-
 num_classes = 30
-
 class bottleNeckResidualBlock (nn.Module):
     # initialize
     def __init__(self, in_channels, out_channels, t, stride=1): # t = expansion factor
@@ -343,7 +161,7 @@ def evaluate_for_video(dataloader, net, idx_to_class):
     # net.to(device)
  
     with torch.no_grad():
-        best_model.eval()
+        #best_model.eval()
         for it, (inputs, targets) in enumerate(tqdm(dataloader)):
             inputs = inputs.to(device)
             targets = targets.to(device)
@@ -372,7 +190,7 @@ def evaluate_for_video(dataloader, net, idx_to_class):
     return
  
  
-def test(model, test_dir='Dataset/OCR_HolderName/test', datalist=None):
+def test(model, test_dir='Dataset/custom_dataset/test', datalist=None):
     #testdir = os.path.join(args.data, 'test')
     testdir = test_dir
     test_dataset = datasets.ImageFolder(
@@ -435,11 +253,11 @@ def get_confustion_matrix_score(class_name, pred_all, target_all):
 
 batch_size = 128
 
-train_data = ImageFolder(root='Dataset/OCR_HolderName/train', transform=aug)
+train_data = ImageFolder(root='Dataset/custom_dataset/train', transform=aug)
 train_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
 
 
-val_data = ImageFolder(root='Dataset/OCR_HolderName/validation', transform=toTensor)
+val_data = ImageFolder(root='Dataset/custom_dataset/validation', transform=toTensor)
 val_data_loader = DataLoader(dataset=val_data, batch_size=batch_size)
 
 #Model 불러오기
@@ -456,6 +274,9 @@ epoch_size = 100
 print(f'len: train data: {len(train_data_loader)}')
 print(f'len: validation data: {len(val_data_loader)}')
 
+#==================================Test===============================#
+# evaluate_for_video 에서 best model 주석 해제하고 test 진행
+"""
 # torch.save(model.state_dict(), '../checkpoint/model_state_dict.pt')
 # torch.save(model.state_dict(), '../checkpoint/model_state_dict.pt')
 best_model = MobileNet_v2().to(device)
@@ -467,7 +288,7 @@ epoch = checkpoint['epoch']
 loss = checkpoint['loss']
 # best_model.eval()
 test(best_model)
-exit()
+exit()"""
 
 for epoch in range(epoch_size): 
     total = 0.0
@@ -533,7 +354,7 @@ for epoch in range(epoch_size):
         'epoch': epoch,
         'optimizer_state_dict': optimizer.state_dict(),
         'model_state_dict': model.state_dict(), 
-        'loss': total_loss}, 'checkpoint/mobileNetv2/model_state_dict_%d.tar'%(epoch+1))
+        'loss': total_loss}, 'mobileNetv2_custom/checkpoint/model_state_dict_%d.tar'%(epoch+1))
 
 # 모델 저장
 #torch.save(model.state_dict(), 'checkpoint/model_state_dict.pt')
