@@ -195,6 +195,7 @@ num_classes = 30
 
 class bottleNeckResidualBlock (nn.Module):
     # initialize
+    # stride=1: default 값
     def __init__(self, in_channels, out_channels, t, stride=1): # t = expansion factor
         super().__init__()
         
@@ -204,7 +205,7 @@ class bottleNeckResidualBlock (nn.Module):
         self.stride = stride
         
         expand = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels * t, 1, bias = False),
+            nn.Conv2d(in_channels, in_channels * t, 1, bias = False), # kernel size = 1
             nn.BatchNorm2d(in_channels * t),
             nn.ReLU6(inplace = True),
             
@@ -347,7 +348,7 @@ def evaluate_for_video(dataloader, net, idx_to_class):
     return
  
  
-def test(model, test_dir='Dataset/OCR_HolderName/test', datalist=None):
+def test(model, test_dir='../Dataset/OCR_HolderName/test', datalist=None):
     #testdir = os.path.join(args.data, 'test')
     testdir = test_dir
     test_dataset = datasets.ImageFolder(

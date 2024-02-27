@@ -1,4 +1,5 @@
 import torch
+import dataProcessing
 import csv
 import torch.nn as nn
 import torchvision 
@@ -17,16 +18,20 @@ warnings.filterwarnings(action='ignore') # warning 무시
 import utils
 # class별로 출력
 from sklearn.metrics import classification_report
-from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter("MobileNetv2_logs_custom")
+writer = SummaryWriter("reCustom_logs")
 from tqdm import tqdm
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import torcheval
+config = {
+    'epochs': 100,
+    'num_classes': 30,
+    'batch_size': 128,
+    'learning_rate': 1e-3
+ }
+# print(config.get('epochs'))
+# exit()
 
 transform = transforms.Compose([          
     transforms.ToTensor()])
@@ -35,7 +40,7 @@ cnt = 0
 #========MobileNet V2========#
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device} device")
-num_classes = 30
+num_classes = config.get('num_classese')
 class bottleNeckResidualBlock (nn.Module):
     # initialize
     def __init__(self, in_channels, out_channels, t, stride=1): # t = expansion factor
@@ -251,7 +256,7 @@ def get_confustion_matrix_score(class_name, pred_all, target_all):
     print(f"class_name : {class_name} precision:{precision} \t recall:{recall}")
     return # precision, recall, tn, fp, fn, tp
 
-batch_size = 128
+batch_size = config.get('batch_size')
 
 train_data = ImageFolder(root='Dataset/custom_dataset/train', transform=aug)
 train_data_loader = DataLoader(dataset=train_data, batch_size=batch_size, shuffle=True)
@@ -265,11 +270,11 @@ model = MobileNet_v2().to(device)
 
 #Tensorflow에서 model.compile() 부분에 해당
 loss_fn = torch.nn.CrossEntropyLoss().to(device)   #Softmax 함수 & Negative Log Liklihood(NLL)까지 포함되어 있음
-optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, momentum=0.9, eps=0.002, weight_decay=0.00004 ) #learning rate = 0.001 Good ,weight_decay=0.00004
+optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-3, momentum=0.9, eps=0.002, weight_decay=0.00004) #learning rate = 0.001 Good ,weight_decay=0.00004
 
 total_batch = len(train_data_loader)
 total_train = len(train_data)
-epoch_size = 100
+epoch_size = config.get('epochs')
 
 print(f'len: train data: {len(train_data_loader)}')
 print(f'len: validation data: {len(val_data_loader)}')
