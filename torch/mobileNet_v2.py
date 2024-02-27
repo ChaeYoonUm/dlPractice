@@ -22,14 +22,9 @@ from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter("MobileNetv2_logs")
 from tqdm import tqdm
 
-import numpy as np
-import matplotlib.pyplot as plt
 import os
-import pandas as pd
 import glob
-import math
 # from torchmetrics.classification import MulticlassPrecision, MulticlassRecall
-import torcheval
 
 transform = transforms.Compose([          
     transforms.ToTensor()])
