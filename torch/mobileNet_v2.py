@@ -430,7 +430,7 @@ print(f'len: validation data: {len(val_data_loader)}')
 # torch.save(model.state_dict(), '../checkpoint/model_state_dict.pt')
 # torch.save(model.state_dict(), '../checkpoint/model_state_dict.pt')
 best_model = MobileNet_v2().to(device)
-PATH = 'mobileNetv2/checkpoint/mobileNetv2/model_state_dict_48.tar'
+PATH = 'mobileNetv2/checkpoint/mobileNetv2/model_state_dict_49.tar'
 checkpoint = torch.load(PATH)
 best_model.load_state_dict(checkpoint['model_state_dict'])
 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
