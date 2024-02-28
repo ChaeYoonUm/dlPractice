@@ -37,7 +37,7 @@ transform = transforms.Compose([
     transforms.ToTensor()])
 sum = 0
 cnt = 0
-#========MobileNet V2========#
+#======== custom MobileNet V2========#
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device} device")
 num_classes = config.get('num_classese')

@@ -38,32 +38,6 @@ transform = transforms.Compose([
 sum = 0
 cnt = 0
 
-
-
-#ccsv = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.csv', recursive=True)) #116528
-#png_file_path = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
-# ppng = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**/*.png', recursive=True)) #116526
-
-#Test dataset 저장
-png_file_path = sorted(glob.glob('../Dataset/OCR_HolderName/**/*.png', recursive=True)) #116528
-
-# for i in range(len(ccsv)):
-#     tmp_csv_name = ccsv[i].split('.')
-#     ccsv[i] = tmp_csv_name[0]
-# for i in range(len(ppng)):
-#     tmp_png_name = ppng[i].split('.')
-#     ppng[i] = tmp_png_name[0]
-
-# set_csv = set(ccsv)
-# set_png = set(ppng)
-# gone_file = list(set_csv - set_png)
-# print(gone_file)
-# ==== PNG 없는 파일 ====#
-#['C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0430\\Holder_name_alpabet\\0293_9445411545060702\\00174_16_9445411545060702_0820_PARKHAECHUL_cardBox', 
-# 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0510\\InsufficientAlphabet_Set\\TextFrame', 
-# 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0409\\hold_name_new\\0346\\001087_100000lux_cardBox', 
-# 'C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name\\hold_name_0430\\Holder_name_alpabet\\0293_9445411545060702\\00176_16_9445411545060702_0820_PARKHAECHUL_cardBox']
-
 #========MobileNet V3========#
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
