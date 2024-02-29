@@ -14,12 +14,12 @@ ppng = sorted(glob.glob('C:/Users/QR22002/Desktop/chaeyun/dataset/Holder_name/**
 #Test dataset 저장
 png_file_path = sorted(glob.glob('../Dataset/OCR_HolderName/**/*.png', recursive=True)) #116528
 
-for i in range(len(ccsv)):
-    tmp_csv_name = ccsv[i].split('.')
-    ccsv[i] = tmp_csv_name[0]
-for i in range(len(ppng)):
-    tmp_png_name = ppng[i].split('.')
-    ppng[i] = tmp_png_name[0]
+# for i in range(len(ccsv)):
+#     tmp_csv_name = ccsv[i].split('.')
+#     ccsv[i] = tmp_csv_name[0]
+# for i in range(len(ppng)):
+#     tmp_png_name = ppng[i].split('.')
+#     ppng[i] = tmp_png_name[0]
 
 set_csv = set(ccsv)
 set_png = set(ppng)

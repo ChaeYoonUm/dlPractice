@@ -78,8 +78,11 @@ class SqueezeExcitation(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         scale = self._scale(input, True) #SE block 통과
-        return scale * input    # 다시 처음 input channel 개수로 맞춰주기
-
+        return scale * input
+        # sigmoid 통과 -> 0~1값
+        # scale = 확률 vector, input = 원래의 feature map 
+        # scale(확률 벡터) * 원래 feature map (=U)
+        # --> SE block: U에서 어떤 채널에 집중해줄지 골라주는 역할
 class InvertedResidualConfig:
 
     def __init__(self, input_channels: int, kernel: int, expanded_channels: int, out_channels: int, use_se: bool,
@@ -228,6 +231,7 @@ class MobileNetV3(nn.Module):
         return self._forward_impl(x)
 
 
+#large & small 
 def _mobilenet_v3_conf(arch: str, params: Dict[str, Any]):
     # non-public config parameters
     reduce_divider = 2 if params.pop('_reduced_tail', False) else 1
