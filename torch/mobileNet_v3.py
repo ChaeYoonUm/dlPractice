@@ -96,7 +96,7 @@ class InvertedResidualConfig:
         self.stride = stride
         self.dilation = dilation
 
-    @staticmethod #self 없음, instance 접근 불가, class 이름 통해 staticmothod 접근 가능
+    @staticmethod #self 없음, instance 접근 불가, class 이름 통해 staticmethod 접근 가능
     def adjust_channels(channels: int, width_mult: float):
         return _make_divisible(channels * width_mult, 8)
 
