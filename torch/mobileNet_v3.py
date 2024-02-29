@@ -60,23 +60,25 @@ model_urls = {
     "mobilenet_v3_small": "https://download.pytorch.org/models/mobilenet_v3_small-047dcff4.pth",
 }
 class SqueezeExcitation(nn.Module):
+
     def __init__(self, input_channels: int, squeeze_factor: int = 4):
         super().__init__()
         squeeze_channels = _make_divisible(input_channels // squeeze_factor, 8)
         self.fc1 = nn.Conv2d(input_channels, squeeze_channels, 1)
         self.relu = nn.ReLU(inplace=True)
         self.fc2 = nn.Conv2d(squeeze_channels, input_channels, 1)
-
+    
+    #Squeeze & Excitation
     def _scale(self, input: Tensor, inplace: bool) -> Tensor:
         scale = F.adaptive_avg_pool2d(input, 1)
-        scale = self.fc1(scale)
-        scale = self.relu(scale)
-        scale = self.fc2(scale)
-        return F.hardsigmoid(scale, inplace=inplace)
+        scale = self.fc1(scale) # Squeeze
+        scale = self.relu(scale) # ReLU 통과 단계
+        scale = self.fc2(scale) # Excitation
+        return F.hardsigmoid(scale, inplace=inplace) # h-sigmoid 통과
 
     def forward(self, input: Tensor) -> Tensor:
-        scale = self._scale(input, True)
-        return scale * input
+        scale = self._scale(input, True) #SE block 통과
+        return scale * input    # 다시 처음 input channel 개수로 맞춰주기
 
 class InvertedResidualConfig:
 
@@ -96,19 +98,23 @@ class InvertedResidualConfig:
         return _make_divisible(channels * width_mult, 8)
 
 class InvertedResidual(nn.Module):
-
+    
+    # Inverted Residual 
     def __init__(self, cnf: InvertedResidualConfig, norm_layer: Callable[..., nn.Module],
                  se_layer: Callable[..., nn.Module] = SqueezeExcitation):
         super().__init__()
         if not (1 <= cnf.stride <= 2):
             raise ValueError('illegal stride value')
 
+        #boolean for whether using the res_connect
         self.use_res_connect = cnf.stride == 1 and cnf.input_channels == cnf.out_channels
 
+        
         layers: List[nn.Module] = []
         activation_layer = nn.Hardswish if cnf.use_hs else nn.ReLU
 
         # expand
+        # norm layer: stacked on top of the convolution layer.
         if cnf.expanded_channels != cnf.input_channels:
             layers.append(ConvNormActivation(cnf.input_channels, cnf.expanded_channels, kernel_size=1,
                                            norm_layer=norm_layer, activation_layer=activation_layer))
@@ -118,6 +124,7 @@ class InvertedResidual(nn.Module):
         layers.append(ConvNormActivation(cnf.expanded_channels, cnf.expanded_channels, kernel_size=cnf.kernel,
                                        stride=stride, dilation=cnf.dilation, groups=cnf.expanded_channels,
                                        norm_layer=norm_layer, activation_layer=activation_layer))
+        # SE block 사용 -> append만 해주면 됨
         if cnf.use_se:
             layers.append(se_layer(cnf.expanded_channels))
 
@@ -131,7 +138,7 @@ class InvertedResidual(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         result = self.block(input)
-        if self.use_res_connect:
+        if self.use_res_connect: # res 사용하면 input에 연결
             result += input
         return result
 
@@ -141,7 +148,7 @@ class MobileNetV3(nn.Module):
             self,
             inverted_residual_setting: List[InvertedResidualConfig],
             last_channel: int,
-            num_classes: int = 1000,
+            num_classes: int = 30,
             block: Optional[Callable[..., nn.Module]] = None,
             norm_layer: Optional[Callable[..., nn.Module]] = None
     ) -> None:
