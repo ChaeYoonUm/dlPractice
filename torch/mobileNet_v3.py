@@ -45,9 +45,8 @@ print(f"Using {device} device")
 num_classes = 30
 
 from functools import partial
-from typing import Any, Callable, List, Optional, Sequence
-
 import torch
+
 from torch import nn, Tensor
 
 from torchvision.models.mobilenetv2 import _make_divisible
