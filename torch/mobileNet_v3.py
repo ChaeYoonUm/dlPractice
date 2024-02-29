@@ -192,7 +192,7 @@ class MobileNetV3(nn.Module):
         lastconv_output_channels = 6 * lastconv_input_channels
         layers.append(ConvNormActivation(lastconv_input_channels, lastconv_output_channels, kernel_size=1,
                                        norm_layer=norm_layer, activation_layer=nn.Hardswish))
-
+        
         self.features = nn.Sequential(*layers)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Sequential(
@@ -551,8 +551,8 @@ for epoch in range(epoch_size):
         #acc_recall = recall.compute()
         # tensorboard --logdir=runs --port=8000
         # tensorboard --logdir=MobileNetv2_logs --port=8000 --host 192.168.0.109
-        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch)  #batch당 loss
-        writer.add_scalar('Accuracy/Train', total_acc/total_train*100, epoch) 
+        writer.add_scalar('Loss/Train', total_loss/total_batch, epoch+1)  #batch당 loss
+        writer.add_scalar('Accuracy/Train', total_acc/total_train*100, epoch+1) 
         #writer.add_scalar('Precision/Train', acc_precision, epoch)
         #writer.add_scalar('Recall/Train', acc_recall, epoch)
 
@@ -586,8 +586,8 @@ for epoch in range(epoch_size):
         accuracy = (100 * running_accuracy / total) # divided by the total num of predictions done
         #val_precision = val_acc_precision.compute()
         #vall_recall = val_acc_recall.compute()
-        writer.add_scalar('Loss/Validation', val_loss_value, epoch)
-        writer.add_scalar('Accuracy/Validation', accuracy, epoch)
+        writer.add_scalar('Loss/Validation', val_loss_value, epoch+1)
+        writer.add_scalar('Accuracy/Validation', accuracy, epoch+1)
         #writer.add_scalar('Precision/Validation', val_precision, epoch)
         #writer.add_scalar('Recall/Validation', vall_recall, epoch)
         #val_acc_precision.reset()
